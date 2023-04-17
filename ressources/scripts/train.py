@@ -15,6 +15,7 @@ def main():
     except:
         print(f'No such config file for training')
         exit()    
+    
     # Multiprocessing data loading
     workers = 12
 
@@ -22,7 +23,7 @@ def main():
     train_list, _, _ = readSplit(config['split_file'])
     valid_list = []
 
-    # train_list = sorted(train_list)[:10]
+    train_list = sorted(train_list)[:10]
 
     train_db = add_points_to_patient_data(read_patient_data_base(pat_list = train_list,
                                                                  volume = config['volume'],
@@ -45,10 +46,7 @@ def main():
                                           nb = None) if len(valid_list) > 0 else None
 
     # Data loaders
-    loaders, iterations = getDataloaders(train_db = train_db, 
-                                         valid_db = valid_db, 
-                                         config = config, 
-                                         workers = workers)
+    loaders, iterations = getDataloaders(train_db = train_db, valid_db = valid_db, config = config, workers = workers)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Model
