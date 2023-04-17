@@ -23,8 +23,6 @@ def main():
     train_list, _, _ = readSplit(config['split_file'])
     valid_list = []
 
-    train_list = sorted(train_list)[:10]
-
     train_db = add_points_to_patient_data(read_patient_data_base(pat_list = train_list,
                                                                  volume = config['volume'],
                                                                  pts_aneurysm = config['truth file'],
