@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-import os, json, random, sys
+import os, json, random, sys, cmath, statistics
+import matplotlib.pyplot as plt
+import evaluation
 import numpy as np
 import pandas as pd
 import Data.IO as dio
 from sklearn.metrics import auc
-from importlib import reload
-import matplotlib.pyplot as plt
-import evaluation
-import statistics
-import cmath
 import scipy.stats as stats
 
 def main():
@@ -17,20 +14,16 @@ def main():
     if not os.path.isdir(predictions_dir):
         print(f'No directory found to load predictions')
         exit()
-
+s
     iou_threshold = 0.1
     confidence_threshold = 0.01
-
 
     # Only one fold
     train_dir = predictions_dir[: predictions_dir.find("Predictions")]
     out_dir = os.path.join(os.getcwd(), predictions_dir)
-    try: 
-        with open(os.path.join(train_dir, 'ndl_config.json'),'r') as f:
-            config = json.load(f)
-    except:
-        with open(os.path.join("/path/to/0Work/YOLO/CHUV_final/5Folds_validation/Fold1_1_10_translation/", 'ndl_config.json'), 'r') as f:
-            config = json.load(f)
+
+    with open(os.path.join(train_dir, 'ndl_config.json'),'r') as f:
+        config = json.load(f)
     split_patients = config['split_file']
     
     if isinstance(predictions_dir, list):
@@ -44,12 +37,11 @@ def main():
         patients = sorted([os.path.join(predictions_dir, f) for f in sorted(os.listdir(predictions_dir)) if ".json" in f])
     print(len(patients), "patients for test")
 
-    # reload(evaluation)
     detections, FNs = evaluation.get_detections(patients,
                                                 iou_thr=iou_threshold,
                                                 confidence_thr=confidence_threshold,
                                                 dir_name=".",
-                                                truth_file_name='F.csv',
+                                                truth_file_name='tmi.csv',
                                                 max_per_patient=None,
                                                 verbose=None)
     
@@ -220,7 +212,6 @@ def main():
                 else:
                     ax6.plot(cmp+1, detection['Confidence'], 'x', color='red', alpha=0.9)
 
-
     # IoU vs Confidence
     ax7.scatter(IoU_TP, confidence_TP, c='green', label=f"TP ({len(IoU_TP)})", alpha=1)
     ax7.scatter(IoU_FP, [f['Confidence'] for f in detections if f['FP'] and f['IoU']>0], c='red', label=f"FP ({len(IoU_FP)})", alpha=1)
@@ -283,61 +274,8 @@ def main():
     ax10.set_xlabel("Diameters (mm)")
     ax10.set_ylabel("Error (mm)")
     ax10.set_xlim((-0.5, 22))
-    #ax10.set_ylim((-18, 110))
     ax10.legend(loc="upper right", framealpha=0.7)
     ax10.grid(True)
-    
-    try:
-        centers = [det['Center'] for det in detections if det['TP']]
-        gt_centers = [det['GT Center'] for det in detections if det['TP']]
-        distance = [np.linalg.norm(np.array(a)-np.array(b)) for a,b in zip(centers, gt_centers)]
-        ax11.scatter(diameters_TP, distance, marker='v' ,color='green', label=f'Center (avg={round(sum(distance)/len(distance), 2)} ± {round(np.std(np.array(distance)),2)}mm;\nmedian={round(statistics.median(distance),2)};\n max={round(max(distance),2)}; min={round(min(distance),2)})', alpha=0.4) 
-        p1s = [det['Pred P1'] for det in detections if det['TP']]
-        gt_p1s = [det['GT P1'] for det in detections if det['TP']]
-        distance = [np.linalg.norm(np.array(a)-np.array(b)) for a,b in zip(p1s, gt_p1s)]
-        ax11.scatter(diameters_TP, distance, marker='x', color='blue', label=f'P1 (avg={round(sum(distance)/len(distance), 2)} ± {round(np.std(np.array(distance)),2)}mm;\nmedian={round(statistics.median(distance),2)};\n max={round(max(distance),2)}; min={round(min(distance),2)})', alpha=0.4) 
-        p2s = [det['Pred P2'] for det in detections if det['TP']]
-        gt_p2s = [det['GT P2'] for det in detections if det['TP']]
-        distance = [np.linalg.norm(np.array(a)-np.array(b)) for a,b in zip(p2s, gt_p2s)]
-        ax11.scatter(diameters_TP, distance, marker='p', color='red', label=f'P2 (avg={round(sum(distance)/len(distance), 2)} ± {round(np.std(np.array(distance)),2)}mm;\nmedian={round(statistics.median(distance),2)};\n max={round(max(distance),2)}; min={round(min(distance),2)})', alpha=0.4) 
-        ax11.legend(loc='center right', framealpha=0.3 )
-        ax11.set_title(f"Distance between GT and predicted keypoints")
-        ax11.set_xlabel("Diameter (mm)")
-        ax11.set_xlim((-0.5, 22))
-        ax11.set_ylabel("Centers distance Error (mm)")
-        ax11.grid(True)
-
-        degrees_error = [det['degree'] for det in detections if det['TP']]
-        degrees_diameter = [det['GT diameter'] for det in detections if det['TP']]
-        degrees_confidence = [det['Confidence'] for det in detections if det['TP']]
-        error_median = statistics.median(degrees_error)
-
-        def circular_mean(angles, deg=True):
-            '''Circular mean of angle data(default to degree)
-            '''
-            a = np.deg2rad(angles) if deg else np.array(angles)
-            angles_complex = np.frompyfunc(cmath.exp, 1, 1)(a * 1j)
-            mean = cmath.phase(angles_complex.sum()) % (2 * np.pi)
-            return round(np.rad2deg(mean) if deg else mean, 7)
-        circular_mean(degrees_error)
-
-        ax12.scatter(degrees_diameter, degrees_error, color='g', label=f'{len(degrees_diameter)} TP: \n(mean={round(circular_mean(degrees_error),2)}°±{round(np.std(np.array(degrees_error)),2)}°\nmedian={round(error_median,2)}\nmax={round(max(degrees_error),2)}°\nmin={round(min(degrees_error),2)}°)',  alpha=0.6) 
-        ax12.legend(loc='center right')
-        ax12.set_xlim((-0.5, 22))
-        ax12.set_title(f"Erorr degree between GT/predicted aneurysm axis")
-        ax12.set_xlabel("Diameter (mm)")
-        ax12.set_ylabel("Error degree (°)")
-        ax12.grid(True)
-
-        ax13.scatter(degrees_error, degrees_confidence, color='g', label=f'{len(degrees_diameter)} TP',  alpha=0.6) 
-        ax13.legend(loc='center right')
-        ax13.set_ylim((-18, 110))
-        ax13.set_title(f"Erorr degree between GT/predicted aneurysm axis")
-        ax13.set_ylabel("Confidence (%)")
-        ax13.set_xlabel("Error degree (°)")
-        ax13.grid(True)
-    except:
-        pass
     
     plt.savefig(os.path.join(out_dir, f'Evaluation@{iou_threshold}.png'), dpi=100)
     print(f"Evaluation figures are saved ({os.path.join(out_dir, f'Evaluation@{iou_threshold}.png')})")
