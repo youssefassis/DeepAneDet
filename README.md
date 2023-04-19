@@ -16,84 +16,56 @@ The project is organized into two main directories: "Data_dir" and "Work_dir". T
 # Usage
 To use our code, follow the following steps:
 ### Preparation
-1. Clone the repository by running the following command:<br>
-    ```git clone cd aneurysm-detection-spheres```
-2. Edit the Docker file by specifying the user_name, group_name, and PYTHONPATH.
-3. Create the Docker container by running the following commands:<br>
-    ```chmod +x buildDocker.sh```<br>
-    ```./buildDocker```
-4. Run the Docker container by running the following two commands:<br>
-    ```chmod +x runDocker.sh```<br>
-    ```./runDocker```
-5. Prepare the data by generating the "noskull.nii.gz" files and "points.csv" file for each patient in the dataset using the scripts ```resources/scripts/removeSkull.py``` and ```resources/scripts/extractPoints.py```, respectively.
-6. Generate a configuration file (config.json) related to the training sample (Train001) using the script "```prepare.py```".
-
-### Traning
-Start the training and validation phase by running ```chmd +x resources/scripts/train.py``` followed by ```./resources/scripts/train.py path/to/Train001``` based on the generated configuration file in "Train_dir/ndl_config.json".
-
-### Inference
-Use the script "predict.py" to perform inference by running ```chmd +x resources/scripts/predict.py``` followed by ```./resources/scripts/predict.py``` path/to/Train001.
-
-### Evaluation
-Evaluate the model using the script "evaluate.py" by running chmd +x resources/scripts/evaluate.py followed by ./resources/scripts/evaluate.py path/to/Train001 according to the description of ADAM challenge.
-
-
-
-
-## Clone the repository
+1. Clone the repository by running the following commands:
     ```
-    git clone 
+    git clone https://gitlab.inria.fr/yassis/aneurysm-detection-spheres.git
     cd aneurysm-detection-spheres
     ```
-## Docker Settings
-1. Edit Docker file:
-    * user_name 
-    * group_name
-    * PYTHONPATH 
-2. Create the container
+2. Edit the "Docker" file by specifying the user_name, group_name, PYTHONPATH, and the configuration of Jupyterlab.
+3. Create the Docker container by running the following commands:
     ```
     chmod +x buildDocker.sh
     ./buildDocker
     ```
-3. Run container
+4. Run the Docker container by running the following two commands:
     ```
     chmod +x runDocker.sh
     ./runDocker
     ```
-
-### Data Preparation
-1. To generate noskull.nii.gz files for each patient data in the dataset (Data_dir)
+5. Access to the Jupyterlab from your browser.
+6. Prepare the data by generating the "noskull.nii.gz" and "points.csv" files for each patient in the dataset:
     ```
     python resources/scripts/removeSkull.py
-    ```
-2. To generate points.csv file (described adove) for each patient in the dataset.
-    ```
     python resources/scripts/extractPoints.py
     ```
-3. Generate configuration file (config.json) related to the training sample (Train001).
+
+### Traning
+1. Generate a customized training sample  (e.g. Train001 directory)  using the command:
     ```
-    python resources/scripts/prepare.py
+    python prepare.py
     ```
 
-### Training
-Start the training and validation phase based on the generated configuration in path/to/Train_dir/ndl_config.json
-```
-chmd +x resources/scripts/train.py
-./resources/scripts/train.py path/to/Train001
-```
+2. Based on the generated configuration file in "Train001/ndl_config.json", start the training and validation phase by running the following two commands:
+    ```
+    chmd +x resources/scripts/train.py 
+    ./resources/scripts/train.py path/to/Train001
+    ```
 
 ### Inference
+Use the script "predict.py" to perform inference by running:
 ```
 chmd +x resources/scripts/predict.py
 ./resources/scripts/predict.py path/to/Train001
 ```
 
 ### Evaluation
-Allows us to evaluate our model following the description of ADAM challenge
+Evaluate the model using the script "evaluate.py" by running:
 ```
 chmd +x resources/scripts/evaluate.py
 ./resources/scripts/evaluate.py path/to/Train001
 ```
+
+
 # Citation
 If you find this repository useful in your research, please consider citing:
 ```
