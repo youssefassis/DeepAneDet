@@ -1,5 +1,5 @@
 # Aneurysm-Detection-Using-Spherical-Representation
-This repository provides a brief overview of the paper "Intracranial Aneurysm Detection using Spherical Representation". The paper was published in IEEE Transaction on Medical Imaging on 11 Juin 2023.
+This repository provides the official software code and annotations of the paper **Intracranial Aneurysm Detection using Spherical Representation**. The paper was published in IEEE Transaction on Medical Imaging on 11 Juin 2023.
 
 # Abstract
 Intracranial aneurysms detection from 3D Time-Of-Flight Magnetic Resonance Angiography (TOF-MRA) images is a problem of increasing clinical importance. Recently, a streak of methods have shown promising performance by using 3D semantic segmentation neural networks with a patch-based approach. However, these methods may be less relevant in a clinical settings, where diagnostic decisions depend on detecting objects rather than their segmentation, and resulting in less adapted object detection evaluation metrics. In this paper, we propose a 3D object detection method designed specifically for the detection of small 3D ball-shaped objects such as aneurysms. 
@@ -19,3 +19,13 @@ Paper citation
 ## Evaluation
 
 # References
+[1]
+Assis et al. (2021). 
+An efficient data strategy for the detection of brain aneurysms from mra with deep learning. 
+Deep Generative Models, and Data Augmentation, Labelling, and Imperfections, pp. 226–234.
+
+[2]
+Di Noto et al. (2022). 
+Towards automated brain aneurysm detection in TOF-MRA: open data, weak labels, and anatomical knowledge. 
+Neuroinformatics, 1-14(3).
+
