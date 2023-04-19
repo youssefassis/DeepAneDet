@@ -15,7 +15,7 @@ The project is organized into two main directories: "Data_dir" and "Work_dir". T
 
 # Usage
 To use our code, follow the following steps:
-### Preparation
+## Preparation
 1. Clone the repository by running the following commands:
     ```
     git clone https://gitlab.inria.fr/yassis/aneurysm-detection-spheres.git
@@ -39,7 +39,7 @@ To use our code, follow the following steps:
     python resources/scripts/extractPoints.py
     ```
 
-### Traning
+## Traning
 1. Generate a customized training sample  (e.g. Train001 directory)  using the command:
     ```
     python prepare.py
@@ -51,20 +51,22 @@ To use our code, follow the following steps:
     ./resources/scripts/train.py path/to/Train001
     ```
 
-### Inference
-Use the script "predict.py" to perform inference by running:
-```
-chmd +x resources/scripts/predict.py
-./resources/scripts/predict.py path/to/Train001
-```
+## Inference
+* Use the script "predict.py" to perform inference by running:
+    ```
+    chmd +x resources/scripts/predict.py
+    ./resources/scripts/predict.py path/to/Train001
+    ```
+* The predictions are generated in "path/to/Train001/Predictions". For each patient, the predictions are saved in a separate JSON file. Each prediction includes the center coordinates (x, y, z) in mm, the radius in mm, and a confidence score as a percentage.
 
-### Evaluation
-Evaluate the model using the script "evaluate.py" by running:
-```
-chmd +x resources/scripts/evaluate.py
-./resources/scripts/evaluate.py path/to/Train001
-```
 
+## Evaluation
+- Evaluate the model using the script "evaluate.py" by running:
+    ```
+    chmd +x resources/scripts/evaluate.py
+    ./resources/scripts/evaluate.py path/to/Train001
+    ```
+- After running the evaluation script, the results are generated as a PNG figure that summarizes the performance of the model on the test images. This figure can be found in the "path/to/Train001/Predictions" directory. 
 
 # Citation
 If you find this repository useful in your research, please consider citing:
