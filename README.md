@@ -69,6 +69,15 @@ To use our code, follow the following steps:
 - After running the evaluation script, the results are generated as a PNG figure that summarizes the performance of the model on the test images. This figure can be found in the "path/to/Train001/Predictions" directory. 
 
 # Annotations and Reproductibity
+In order to overcome the limitations of voxel-wise annotation, weak annotation is used to identify aneurysms. This involves approximating the shape of aneurysms using spheres. 
+
+As illustrated in the figure below, to create these spheres, two points are used as reference: the center of the neck of the aneurysm (F1) and the dome of the aneurysm (F2). The sphere is then created to enclose the aneurysm using these two points as a guide.
+
+<img
+  src="Images/annotation.png"
+  alt="Our adopted annotation"
+  title=" Fast aneurysm annotation: 2 points (F1, F2) approximate the aneurysm with a sphere (red)">
+
 To support the reproducibility of our paper, we provide access to the annotations of the subjects used in our dataset[3] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?".
 
 # Citation
