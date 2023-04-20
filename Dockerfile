@@ -4,7 +4,7 @@ FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
 ENV USER_NAME user_name
 ENV GROUP group_name
 ENV HOME /home/${USER_NAME}
-ENV PYTHONPATH="${PYTHONPATH}:/path/to/dataStrategy:/path/to/models:/path/to/ressources"
+ENV PYTHONPATH="${PYTHONPATH}:/path/to/dataStrategy:/path/to/models:/path/to/resources"
 
 WORKDIR ${HOME}
 
