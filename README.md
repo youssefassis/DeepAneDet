@@ -1,10 +1,11 @@
-# Aneurysm Detection using Spherical Representation
-This repository contains the official software code and annotations related to the paper ["Intracranial Aneurysm Detection using Spherical Representation"](https://link.to.paper/). The paper was published in IEEE Transactions on Medical Imaging 2023.
+# Intracranial Aneurysm Detection: An object detection perspective
+This repository contains the official software code and annotations related to the paper ["Intracranial Aneurysm Detection: An object detection perspective"](https://link.to.paper/). The paper was published in IEEE Transactions on Medical Imaging 2023.
 
 # Abstract
 Intracranial aneurysms detection from 3D Time-Of-Flight Magnetic Resonance Angiography (TOF-MRA) images is a problem of increasing clinical importance. This paper proposes a 3D object detection method designed specifically for the detection of small 3D ball-shaped objects such as aneurysms, using spherical representation. The proposed method is inspired by YOLO architecture and is based on fast data annotation and adapted data sampling and generation strategies.
 
 We compare our method to state-of-the-art nnDetection[1] and nnUnet[2] methods using two datasets comprising 402 patients, including one public dataset[3], and using more adapted evaluation metrics. Our approach significantly reduces the detection complexity while achieving comparable or even superior performance, with an average precision of 78.96%, and a sensitivity of 86.78% associated with 0.53 false positives per case.
+
 
 # Description
 The project is organized into two main directories: "Data_dir" and "Work_dir". The "Data_dir" contains data related to patients (P0001, P0002, etc.) and a working directory called "Work_dir" that stores training samples (Train001, Train002, etc.) for custom training.
@@ -80,11 +81,6 @@ As illustrated in the figure below, to create these spheres, two points are used
 
 To support the reproducibility of our paper, we provide access to the annotations of the subjects used in our dataset[3] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?".
 
-# Citation
-If you find this repository useful in your research, please consider citing:
-```
-Assis et al. Intracranial Aneurysm Detection using Spherical Representation (2023)
-```
 # References
 [1] Isensee et al, nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation, Nature methods 18(2), 203–211 (2021).
 
@@ -92,7 +88,11 @@ Assis et al. Intracranial Aneurysm Detection using Spherical Representation (202
 
 [3] Di Noto et al, Towards automated brain aneurysm detection in TOF-MRA: open data, weak labels, and anatomical knowledge. Neuroinformatics, pp. 1-14, (2022).
 
+# Citation
+If you find this repository useful in your research, please consider citing:
+```
+Assis et al. Intracranial Aneurysm Detection: An object detection perspective, IEEE Transactions on medical imaging, 2023
+```
+
 # Acknowledgements
-This work was founded by Region Grand-Est, CHRU University hospital Nancy and Lorraine Univeristy in France.
-# License
-This project is licensed under the MIT License - see the LICENSE.md file for details.
+This work was founded by Region Grand-Est, CHRU University hospital Nancy and Univeristy of Lorraine in France.
