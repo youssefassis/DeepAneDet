@@ -88,11 +88,6 @@ To support the reproducibility of our paper, we provide access to the annotation
 
 [3] Di Noto et al, Towards automated brain aneurysm detection in TOF-MRA: open data, weak labels, and anatomical knowledge. Neuroinformatics, pp. 1-14, (2022).
 
-# Citation
-If you find this repository useful in your research, please consider citing:
-```
-Assis et al. Intracranial Aneurysm Detection: An object detection perspective, IEEE Transactions on medical imaging, 2023
-```
 
 # Acknowledgements
 This work was founded by Region Grand-Est, CHRU University hospital Nancy and Univeristy of Lorraine in France.
