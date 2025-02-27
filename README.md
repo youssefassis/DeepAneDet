@@ -89,4 +89,4 @@ To support the reproducibility of our paper, we provide access to the annotation
 
 
 # Acknowledgements
-This work was founded by Region Grand-Est, CHRU University hospital of Nancy in France.
+This work was funded by Region Grand-Est, CHRU University hospital of Nancy in France.
