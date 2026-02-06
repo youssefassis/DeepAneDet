@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, json, torch
+import os, sys, json, torch, math
 
 from utils import get_optimizer_scheduler, get_model
 from Data.IO import add_points_to_patient_data, readSplit, read_patient_data_base
@@ -12,6 +12,8 @@ def main():
     try:
         with open(os.path.join(sys.argv[1], 'ndl_config.json'),'r') as f:
             config = json.load(f)
+        if not 'scales' in config:
+            config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
     except:
         print(f'No such config file for training')
         exit()    

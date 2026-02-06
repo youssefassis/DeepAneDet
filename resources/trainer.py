@@ -1,7 +1,7 @@
 import os, torch
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
-from torch.cuda.amp import GradScaler
+from torch.amp import GradScaler
 from schedulers import Poly, WarmupLRScheduler, WarmupScheduler
 from utils import get_logger, RunningAverage, save_checkpoint, load_checkpoint
 
@@ -50,7 +50,7 @@ class Trainer:
         self.num_epoch = num_epoch
         self.save_model_each_epochs = save_model_each_epochs
         self.warmup_epochs = warmup_epochs
-        self.mixed_precision = GradScaler()
+        self.mixed_precision = GradScaler('cuda')
                     
         self.writer = SummaryWriter(log_dir = os.path.join(self.checkpoint_dir, 'logs'))
             
@@ -88,7 +88,7 @@ class Trainer:
             
             self.optimizer.zero_grad()
             # Mixed precision training: Forward pass
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast():
                 pred_spheres = self.model(input_volume)
                 loss = self.loss_criterion(predictions = pred_spheres, targets = target_spheres) if self.scaled_anchors is None else self.loss_criterion(predictions = pred_spheres, targets = target_spheres, anchors = self.scaled_anchors)
                 

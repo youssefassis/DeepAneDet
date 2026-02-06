@@ -26,7 +26,7 @@ def getDataloaders(train_db, valid_db, config, workers):
     valid_generator, valid_iterations = None, 0
 
     balancedbatch = config['balancedbatch'] if 'balancedbatch' in config else False
-    scales = config["scales"] if 'scales' in config else None
+    scales = config["scales"] #if 'scales' in config else None
     anchors = config["anchors"] if "anchors" in config else None
 
     if train_db is not None:

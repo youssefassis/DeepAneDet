@@ -28,8 +28,8 @@ def get_model(config, default_init="He", device='cpu'):
 
 def select_model(config, logger):
     # Instantiate the model
-    if config["model"] == "YOLO":
-        from yolo_model import YOLO
+    if config["model"] == "ASSIS":
+        from assis_model import AssisModel
         from buildingblocks import DoubleConv, ExtResNetBlock
         
         pool_type = config['pool_type'] if 'pool_type' in config else 'max'
@@ -37,7 +37,7 @@ def select_model(config, logger):
         params_per_box = config['num parameters'] if 'num parameters' in config else 4
         anchors_per_scale = len(config["anchors"]) if "anchors" in config and config["anchors"] is not None else 1
 
-        model = YOLO(   in_channels=config['in_channels'], out_channels=config['out_channels'],
+        model = AssisModel(   in_channels=config['in_channels'], out_channels=config['out_channels'],
                         f_maps=config['n_base_filters'], layer_order=config["layer_order"], pool_type='conv', 
                         num_levels = config['depth'], basic_module=basic_module, 
                         conv_kernel_size=3, pool_kernel_size=2, conv_padding=1,
@@ -46,23 +46,23 @@ def select_model(config, logger):
                         anchors_per_scale= anchors_per_scale, 
                     )
         
-    elif config["model"] == "YOLO_without_Anchors":
-        from yolo_model import YOLO_without_Anchors
-        from buildingblocks import DoubleConv, ExtResNetBlock
-        pool_type = config['pool_type'] if 'pool_type' in config else 'max'
-        basic_module = ExtResNetBlock if 'basic_module' in config and config['basic_module']=="ExtResNetBlock" else DoubleConv
-        model = YOLO_without_Anchors(in_channels=config['in_channels'], out_channels=config['out_channels'],
-                         num_levels = config['depth'], 
-                         layer_order = config["layer_order"], 
-                         pool_type = 'conv', 
-                         conv_kernel_size = 3,
-                         pool_kernel_size = 2, conv_padding=1,
-                         basic_module=basic_module, is_testing=is_testing,
-                         num_classes = 0, params_per_box = 4,
-                         anchors_per_scale = 1,
-                         nb_scales = len(config['scales'])
-                        )
-                
+#    elif config["model"] == "YOLO_without_Anchors":
+#        from yolo_model import YOLO_without_Anchors
+#        from buildingblocks import DoubleConv, ExtResNetBlock
+#        pool_type = config['pool_type'] if 'pool_type' in config else 'max'
+#        basic_module = ExtResNetBlock if 'basic_module' in config and config['basic_module']=="ExtResNetBlock" else DoubleConv
+#        model = YOLO_without_Anchors(in_channels=config['in_channels'], out_channels=config['out_channels'],
+#                         num_levels = config['depth'], 
+#                         layer_order = config["layer_order"], 
+#                         pool_type = 'conv', 
+#                         conv_kernel_size = 3,
+#                         pool_kernel_size = 2, conv_padding=1,
+#                         basic_module=basic_module, is_testing=is_testing,
+#                         num_classes = 0, params_per_box = 4,
+#                         anchors_per_scale = 1,
+#                         nb_scales = len(config['scales'])
+#                        )
+#                
 
     else:
         raise ValueError(f"Unsupported model '{config['model']}'")
