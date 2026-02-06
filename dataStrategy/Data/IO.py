@@ -49,7 +49,6 @@ def read_nii_from_file(fname):
     '''
     Read a nii volume and return a 2-tuple with the voxel data (np array) and the voxel2metric tranform
     '''
-    assert os.path.isfile(fname), f"nii file not found {fname}"
     nv = ni.load(fname)
     return nv.get_fdata(), nv.affine
 
@@ -67,7 +66,6 @@ def read_points_from_csv(fname, nb = None):
     '''
     returns a list of points, read from a csv file. Coordinates are stored in columns named 'x', 'y' and 'z'
     '''
-    assert os.path.isfile(fname), f"CSV file not found {fname}"
     try:
         try:
             d = pd.read_csv(fname, usecols = ['x','y','z', 'type'])
@@ -88,6 +86,9 @@ def points_to_spheres(p):
     returns: a list of N/2 x 4 values: the first 3 values are the center of each segment (i.e. center of the sphere),
              and the 4th value is its half-length (i.e. radius of the sphere)
     '''
+    if p is None or len(p) == 0:
+        return np.empty((0,3))
+
     if p.shape[1] != 3:
         raise ValueError('Input array must be a list of 3D points')
     if p.shape[0]%2 != 0:
@@ -301,7 +302,7 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
     q = None
     if randomPoints:
         minThreshold, maxThreshold = np.percentile(vol[vol>0], 0), np.percentile(vol[vol>0], 100)
-        print(f'\nRandom Points ', end='')
+        print(f'Random Points ', end='')
         p=selectPoints(vol, vox2met, thresLow=minThreshold, thresHigh=maxThreshold, r=r,
                              fPoints=fp, nbPoints=nbPoints, extractType='Parenchyma')
         print(f'{len(p)} random points')

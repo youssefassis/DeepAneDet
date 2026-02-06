@@ -4,6 +4,8 @@ import scipy.ndimage as sndi
 import skimage.morphology as skim
 import skimage.measure as skme
 from scipy.ndimage.measurements import label
+from scipy.spatial import ConvexHull
+from scipy.spatial.distance import cdist
 
 def extractPointsThres(vol,vox2met,thresLow, thresHigh):
     '''
@@ -44,6 +46,7 @@ def selectPoints(vol,vox2met,thresLow,r,thresHigh=None,fPoints=None,
     If nbPoints is provided (a number), then at most nbPoints are returned.
     The function starts with the brightest allowable point and review points with
     decreasing value. As a consequence, v should be sorted (decreasing) on output
+
     Example use:
     d=ni.load('volume.nii')
     vol=np.asarray(d.dataobj)
@@ -141,7 +144,7 @@ def removeSkullMask(vol,percent=80):
     # erode this mask to remove the skull
     selem=getBall(2)
     for _ in range(15):
-        mask=skim.binary_erosion(mask,selem=selem).astype(np.uint8)
+        mask=skim.binary_erosion(mask,footprint=selem).astype(np.uint8)
     # return this mask
     return mask
 
@@ -149,6 +152,7 @@ def removeSkullMask(vol,percent=80):
 def ConnectedComponents2Spheres(vol, vox2met, min_score=0.01):
     '''
     This function performs connected component labeling on a 3D volume and extracts spheres from the connected components.
+
     Parameters:
         vol: a 3D numpy array representing the volume.
         vox2met: a 4x4 numpy array representing the transformation matrix from voxel to metric coordinates.
@@ -169,40 +173,71 @@ def ConnectedComponents2Spheres(vol, vox2met, min_score=0.01):
         5- Computes the radius of the sphere as half the difference between the maximum and minimum
         metric coordinates of the connected component.
         6- Appends the center coordinates, radius, and confidence score to the spheres array.
-    The output of the function is the spheres array, which is a Nx5 numpy array where each row represents
-    a sphere and contains the following values:
+
+    The output of the function is the spheres array, and the points array. Each array
+    is a numpy array with N rows, one per connected component.
+
+    A row in the spheres array represents a sphere encoded with 5 values:
         - cog: a 3-element numpy array representing the center of gravity of the sphere in metric coordinates.
         - r: a float representing the radius of the sphere in metric units.
         - score: a float representing the confidence score of the sphere.
+    
+    A row in the points array has 6 components to store a pair of 3D points.
+    These points are the farthest apart from each other in the connected component.
+    They can only make sense in the case of a manual voxel-wise segmentation. 
+    In the case of a sphere, the result is unpredictable, though both points always
+    form a diameter of the sphere.
     '''
     
     # thresholding: remove voxel values less than min_score
     vol[vol < min_score] = 0
     # label CC in volume
-    labels, ncc_pred = label(vol)
+    labels, ncc_pred = label(vol,structure=np.ones((3,3,3)))
     spheres = np.empty((0, 5))
+    points = np.empty((0, 6))
     for i in range(ncc_pred):
-        # Confidence score
-        mask = vol.copy()
-        mask[labels != i+1] = 0
-        score = mask.max()
+        ## Confidence score
+        score = vol[labels == i+1].max()
         
         # extract positions of voxels in CC (in voxel coords)
         vpos=np.vstack(np.where(labels == i+1))
         # transform in metric coords
         mpos = (vox2met@np.vstack((vpos, np.ones(vpos.shape[1]))))[:3,:]
-        # compute center of gravity
+        ## compute center of gravity
         cog = np.mean(mpos,axis=1)
         
-        # compute the radius
-        m=np.min(mpos,axis=1)
-        M=np.max(mpos,axis=1)
-        r = np.max(M-m)/2
+        ## compute the radius: farthest distance between points
+        # keep only points on the convex hull (beat the N^2 complexity)
+        hull = ConvexHull(mpos.T)
+
+        # Extract the points forming the hull
+        hullpoints = mpos[:,hull.vertices]
+
+        # Naive way of finding the best pair in O(H^2) time if H is number of points on
+        # hull
+        hdist = cdist(hullpoints.T, hullpoints.T, metric='euclidean')
+
+        # Get the farthest apart points
+        bestpair = np.unravel_index(hdist.argmax(), hdist.shape)
+        P1=hullpoints[:,bestpair[0]]
+        P2=hullpoints[:,bestpair[1]]
+        
+        # compute radius
+        r=0.5*np.linalg.norm(P1-P2)
+
+        ## recompute points along the same direction as P2-P1 and going through cog
+        # warning: this does not ensure P1 is in the neck and P2 on the dome
+        v=(P2-P1)/2
+        P1=cog-v
+        P2=cog+v
 
         # alternative: through volume
-#        voxel_size = np.linalg.norm(vox2met[:3,:3],axis=0)
-#        voxel_volume = np.prod(voxel_size)
-#        sphere_volume = vpos.shape[1] * voxel_volume
-#        r = (sphere_volume * 3/(4*np.pi))**(1/3)
+        #        voxel_size = np.linalg.norm(vox2met[:3,:3],axis=0)
+        #        voxel_volume = np.prod(voxel_size)
+        #        sphere_volume = vpos.shape[1] * voxel_volume
+        #        r = (sphere_volume * 3/(4*np.pi))**(1/3)
         spheres = np.vstack((spheres, np.hstack((cog, r, score))))
-    return spheres
+        points = np.vstack((points, np.hstack((P1,P2))))
+
+    return spheres, points
+

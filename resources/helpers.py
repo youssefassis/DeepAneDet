@@ -207,21 +207,21 @@ def keep_only_intersected_spheres(spheres1, spheres2, min_iou_threshold):
     return non_max_suppression(sorted(results, key=lambda x: x[-1], reverse=True), iou_threshold=min_iou_threshold)
 
 def spheres_to_metric (spheres, v2m):
-    ''''
+    '''
     This is a Python function that transforms a list of sphere coordinates 
     from voxel space to metric space using an affine transformation matrix. 
     The function takes in two arguments: spheres, which is a list of sphere 
     coordinates in voxel space, and v2m, which is a 4x4 affine transformation 
     matrix that converts voxel coordinates to metric coordinates.
     '''
-    def apply_transormation(elements, trans):
+    def apply_transformation(elements, trans):
         return apply_affine (trans, elements)
     assert isinstance(spheres, list)
     v2m = v2m.squeeze()    
     vox_size = np.linalg.norm(v2m[:3,:3], axis=0)
     
     for sphere in spheres:
-        sphere[:3] = apply_transormation(np.array(sphere[:3]), v2m) # center
+        sphere[:3] = apply_transformation(np.array(sphere[:3]), v2m) # center
         if len(sphere) == 5: # x, y, z, radius, confidence
             sphere[3] = float(sphere[3] * vox_size[0]) # radius
         else: # Bounding boxes

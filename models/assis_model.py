@@ -50,7 +50,7 @@ class DetectionHead(nn.Module):
             x2 = self.conv_regression(x).reshape(x.shape[0], self.anchors_per_scale, self.params_per_box, x.shape[2], x.shape[3], x.shape[4]).permute(0, 1, 3, 4, 5, 2).contiguous() # regression parameters
         return [x1, x2]
 
-class Model(nn.Module):
+class AssisModel(nn.Module):
     '''
     This is a YOLO-based neural network for 3D object detection using spherical representation. 
     The network takes a 3D input image with a 'single' channel and feeds it through a series of 
@@ -74,7 +74,7 @@ class Model(nn.Module):
                                                for i in list(reversed(f_maps[-nb_scales:]))])
     def forward(self, x):
         '''
-        This forward method of the YOLO_Orientation class takes an input tensor x and passes it through
+        This forward method of the AssisModel class takes an input tensor x and passes it through
         the encoder layers to extract features. The features are then passed through the detection block
         to predict the object location and orientation, and the output is returned as a list of predictions.
         '''
