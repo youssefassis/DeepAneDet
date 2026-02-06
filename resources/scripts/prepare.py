@@ -24,7 +24,7 @@ def main():
     config["validation_batch_size"] = 128
     
     config["loss"] = "YOLO_Loss"
-    config["model"] = "YOLO"
+    config["model"] = "ASSIS"
     config["num parameters"] = 4
     config["layer_order"] = "cbl"
     config["depth"] = 4
