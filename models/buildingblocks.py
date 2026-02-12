@@ -16,6 +16,25 @@ def number_of_features_per_level(init_channel_number, num_levels):
    '''
     return [init_channel_number * 2 ** k for k in range(num_levels)]
 
+def createBN (in_channels, eps=1e-5, affine=True):
+    '''
+    This function creates a batch normalization layer using PyTorch nn.BatchNorm3d module.
+    It takes in the number of input channels and two arguments:
+        - eps (default=1e-5) is the value added to the denominator of the batch 
+        normalization expression to improve numerical stability. 
+        - affine (default=True) is a boolean value that determines whether to apply an affine 
+        transformation after normalization. If True, the module will learn two
+        parameters per input channel: a scaling parameter and a bias parameter.
+    '''
+    return nn.BatchNorm3d(in_channels, eps = eps, affine = affine)
+
+def createLeakyReLU (negative_slope=0.01, inplace=True):
+    '''
+    This function creates a LeakyReLU activation function with the given negative slope and inplace parameters.
+    '''
+    return nn.LeakyReLU(negative_slope=negative_slope, inplace=inplace)
+
+
 def createConv(inp_feat, out_feat, kernel=3, stride=1, padding=1, bias=True):
     '''
     This function creates a batch normalization layer using PyTorch nn.BatchNorm3d module.
@@ -28,7 +47,7 @@ def createConv(inp_feat, out_feat, kernel=3, stride=1, padding=1, bias=True):
     '''
     return nn.Conv3d(inp_feat, out_feat, kernel_size=kernel, stride=stride, padding=padding, bias=bias)
 
-def create_conv(in_channels, out_channels, kernel_size, order, padding, stride=1):
+def create_conv(in_channels, out_channels, kernel_size, order, padding, stride=1, dropout=False):
     '''
     This function creates a convolutional block with different options for the order of operations.
     It takes in the number of input and output channels, kernel size, order of operations, padding, and stride as arguments.

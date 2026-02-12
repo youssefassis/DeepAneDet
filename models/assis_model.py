@@ -2,6 +2,18 @@ import torch
 import torch.nn as nn
 from buildingblocks import number_of_features_per_level, create_encoders, DoubleConv, create_conv
 
+def createBN (in_channels, eps=1e-5, affine=True):
+    '''
+    This function creates a batch normalization layer using PyTorch nn.BatchNorm3d module.
+    It takes in the number of input channels and two arguments:
+        - eps (default=1e-5) is the value added to the denominator of the batch 
+        normalization expression to improve numerical stability. 
+        - affine (default=True) is a boolean value that determines whether to apply an affine 
+        transformation after normalization. If True, the module will learn two
+        parameters per input channel: a scaling parameter and a bias parameter.
+    '''
+    return nn.BatchNorm3d(in_channels, eps = eps, affine = affine)
+
 class CNNBlock(nn.Module):
     '''
     This is a Module for a CNN block with a 3D convolutional layer, batch normalization, and 
@@ -59,7 +71,7 @@ class AssisModel(nn.Module):
     detection block with convolutional layers to predict (i.e. detect aneurysms) the spheres. 
     '''
     def __init__(self, in_channels=1, f_maps=64, layer_order='cbl', pool_type='conv', num_levels=4, conv_kernel_size=3, pool_kernel_size=2, conv_padding=1, basic_module=DoubleConv, params_per_element = 4,  anchors_per_scale=1, nb_scales=1):
-        super(Model, self).__init__()
+        super(AssisModel, self).__init__()
         if isinstance(f_maps, int):
             f_maps = number_of_features_per_level(init_channel_number=f_maps, 
                                                   num_levels=num_levels)
@@ -68,7 +80,7 @@ class AssisModel(nn.Module):
 
         self.encoders = create_encoders(in_channels=in_channels, f_maps=f_maps, basic_module=basic_module, conv_kernel_size=conv_kernel_size, conv_padding=conv_padding, layer_order=layer_order, pool_kernel_size=pool_kernel_size, pool_type=pool_type)
         self.ScaleDetections = nn.ModuleList([DetectionHead(in_channels = i, 
-                                                              params_per_box = params_per_box,
+                                                              params_per_box = params_per_element,
                                                               anchors_per_scale = anchors_per_scale
                                                             )
                                                for i in list(reversed(f_maps[-nb_scales:]))])
