@@ -35,13 +35,13 @@ def select_model(config, logger):
         pool_type = config['pool_type'] if 'pool_type' in config else 'max'
         basic_module = ExtResNetBlock if 'basic_module' in config and config['basic_module']=="ExtResNetBlock" else DoubleConv
         params_per_box = config['num parameters'] if 'num parameters' in config else 4
-        anchors_per_scale = len(config["anchors"]) if "anchors" in config and config["anchors"] is not None else 1
+        anchors_per_scale = len(config["anchors"]) if "anchors" in config else 1
 
-        model = AssisModel(   in_channels=config['in_channels'], out_channels=config['out_channels'],
+        model = AssisModel(   in_channels=config['in_channels'], #out_channels=config['out_channels'],
                         f_maps=config['n_base_filters'], layer_order=config["layer_order"], pool_type='conv', 
                         num_levels = config['depth'], basic_module=basic_module, 
                         conv_kernel_size=3, pool_kernel_size=2, conv_padding=1,
-                        params_per_box = params_per_box, 
+                        params_per_element = params_per_box, 
                         nb_scales=len(config['scales']),   
                         anchors_per_scale= anchors_per_scale, 
                     )

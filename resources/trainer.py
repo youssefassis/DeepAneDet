@@ -88,7 +88,7 @@ class Trainer:
             
             self.optimizer.zero_grad()
             # Mixed precision training: Forward pass
-            with torch.amp.autocast():
+            with torch.amp.autocast('cuda'):
                 pred_spheres = self.model(input_volume)
                 loss = self.loss_criterion(predictions = pred_spheres, targets = target_spheres) if self.scaled_anchors is None else self.loss_criterion(predictions = pred_spheres, targets = target_spheres, anchors = self.scaled_anchors)
                 
