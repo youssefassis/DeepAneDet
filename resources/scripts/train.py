@@ -12,7 +12,7 @@ def main():
     try:
         with open(os.path.join(sys.argv[1], 'ndl_config.json'),'r') as f:
             config = json.load(f)
-        if not 'scales' in config:
+        if not 'scales' in config or config['scales'] is None:
             config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
     except:
         print(f'No such config file for training')
@@ -57,7 +57,7 @@ def main():
     optimizer, scheduler = get_optimizer_scheduler (model = model, config=config, warmup_steps=warmup_steps)
     
     
-    trainer = create_trainer( config=config, device=device, model=model, optimizer=optimizer, lr_scheduler=scheduler, loss_criterion=get_loss_criterion(config["loss"]), loaders=loaders, max_iterations=iterations, scales=config['scales'], anchors=config['anchors'])
+    trainer = create_trainer( config=config, device=device, model=model, optimizer=optimizer, lr_scheduler=scheduler, loss_criterion=get_loss_criterion(config["loss"]), loaders=loaders, max_iterations=iterations, scales=config['scales'], anchors=config['anchors'] if 'anchors' in config else None)
     trainer.fit()
 
 if __name__ == '__main__':
