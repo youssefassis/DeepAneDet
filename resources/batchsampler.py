@@ -73,7 +73,7 @@ class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
                     neg_indices.extend(self.neg_indices[patient_idx][:self.nb_negative_samples_per_patient])
                 else:
                     neg_indices.extend(self.neg_indices[patient_idx])
-        neg_indices = np.array(neg_indices)
+        neg_indices = np.array(neg_indices, dtype=int)
         np.random.shuffle(pos_indices)
         np.random.shuffle(neg_indices)
         
