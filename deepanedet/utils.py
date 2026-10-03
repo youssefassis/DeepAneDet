@@ -5,7 +5,7 @@ import copy
 
 def load_training_config(train_dir):
     '''
-    Reads the ndl_config.json of a training directory (see deepanedet.scripts.prepare). Missing scales default to one
+    Reads the ndl_config.json of a training directory (see scripts/prepare.py). Missing scales default to one
     detection grid cell per 8 patch voxels.
     '''
     with open(os.path.join(train_dir, 'ndl_config.json'), 'r') as f:
