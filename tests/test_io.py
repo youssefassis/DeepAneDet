@@ -1,4 +1,5 @@
 import json
+import os
 
 import nibabel as ni
 import numpy as np
@@ -29,8 +30,7 @@ def test_normal_normalization_standardizes(volume_file):
 
 
 @pytest.fixture
-def patient_dir(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)  # restores the working directory changed by extractPointsFromPatient
+def patient_dir(tmp_path):
     patient = tmp_path / "P0001"
     patient.mkdir()
     vol = np.random.default_rng(0).random((30, 30, 30)).astype(np.float32)
@@ -41,8 +41,14 @@ def patient_dir(tmp_path, monkeypatch):
     return patient
 
 
-def test_extract_points_writes_vessel_and_parenchyma_points(patient_dir):
+def test_extract_points_writes_vessel_and_parenchyma_points(patient_dir, monkeypatch, tmp_path):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
     dio.extractPointsFromPatient(str(patient_dir), r=5, nbPoints=5)
+
+    assert list(elsewhere.iterdir()) == [] and os.getcwd() == str(elsewhere)
 
     points = pd.read_csv(patient_dir / "points.csv")
     assert set(points["type"]) == {"Vessel", "Parenchyma"}
