@@ -282,13 +282,14 @@ def fcsv2csv(fcsv_file):
     # save the result
     d.to_csv(filename + ".csv", index=False)
 
-def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", randomPoints=False):
+def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", randomPoints=False, truth_file=None):
     '''
     This function extracts points from a patient's imaging volume. The points can either be randomly
     selected from the parenchyma or selected from vessels based on a threshold of the image intensity.
     The function takes the patient's directory, the distance (r) between any two points, the number
     of points (nbPoints) to extract, the name of the output file (outfile), and a boolean variable 
-    for randomly selecting points. 
+    for randomly selecting points. The aneurysms are read from truth_file if given, else from the 'pts aneurysm'
+    entry of config.json (none if missing).
     The function reads the patient data volume and point locations from a JSON file. It extracts the
     points from the vessel and parenchyma based on the specified method and exports the points as a 
     CSV file, which is then converted to an FCSV file.
@@ -298,7 +299,8 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
         d = json.load(f)
     vol, vox2met = read_nii_from_file(os.path.join(patient, d['noskull volume']))
     print(f'Extracting points')
-    ane_file = os.path.join(patient, d['pts aneurysm']) if d.get('pts aneurysm') else None
+    truth_file = truth_file or d.get('pts aneurysm')
+    ane_file = os.path.join(patient, truth_file) if truth_file else None
     fPoints = read_points_from_csv(ane_file) if ane_file and os.path.isfile(ane_file) else None
     fp = points_to_spheres(fPoints)[:,:-1] # keep the centers, drop the radii
     q = None
