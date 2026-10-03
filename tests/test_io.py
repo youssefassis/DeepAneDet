@@ -74,3 +74,15 @@ def test_generate_masks_burns_the_aneurysm_spheres(tmp_path):
 
     mask = ni.load(patient / "mask_spheres.nii.gz").get_fdata()
     assert mask[10, 10, 10] == 1 and mask[10, 10, 13] == 0
+
+
+@pytest.mark.parametrize(
+    "patient_dir, name",
+    [
+        ("/data/P0001", "P0001"),
+        ("/data/P0001/", "P0001"),
+        ("/data/sub-013/ses-20101220", "sub-013_ses-20101220"),
+    ],
+)
+def test_patient_name(patient_dir, name):
+    assert dio.patient_name(patient_dir) == name

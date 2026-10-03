@@ -34,6 +34,14 @@ def fetch_patient_dirs(base_dir):
     '''
     return [os.path.dirname(subject_conf) for subject_conf in glob.glob(os.path.join(base_dir, 'P????', 'config.json'))]
 
+def patient_name(patient_dir):
+    '''
+    Name identifying a patient directory: its folder name (e.g. P0001), prefixed by the subject for
+    BIDS-like session folders (.../sub-013/ses-20101220 -> sub-013_ses-20101220, as in Reproducibility/Annotations)
+    '''
+    parent, name = os.path.split(os.path.normpath(patient_dir))
+    return f"{os.path.basename(parent)}_{name}" if name.startswith("ses-") else name
+
 def apply_transformation(elements, trans):
     '''
     Parameters:
