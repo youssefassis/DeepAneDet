@@ -31,40 +31,42 @@ To use our code, follow the following steps:
     ./runDocker
     ```
 5. Access to the Jupyterlab from your browser.
-6. Prepare the data by generating the "noskull.nii.gz" and "points.csv" files for each patient in the dataset:
+6. The scripts import the modules of `dataStrategy`, `models` and `resources`: outside Docker, add them to the `PYTHONPATH`:
     ```
-    python resources/scripts/removeSkull.py
-    python resources/scripts/extractPoints.py
+    export PYTHONPATH="$PWD/dataStrategy:$PWD/models:$PWD/resources:$PYTHONPATH"
+    ```
+7. Prepare the data by generating the "noskull.nii.gz" (from each patient folder) and "points.csv" files for each patient in the dataset:
+    ```
+    cd path/to/Data_dir/P0001 && python path/to/DeepAneDet/resources/scripts/removeSkull.py
+    python -c "import Data.IO as dio; dio.extractPoints('path/to/Data_dir')"
     ```
 
 ## Traning
-1. Generate a customized training sample  (e.g. Train001 directory)  using the command:
+1. Set the paths at the top of `resources/scripts/prepare.py`, then generate a customized training sample (e.g. Train001 directory) using the command:
     ```
-    python prepare.py
+    python resources/scripts/prepare.py
     ```
 
 2. Based on the generated configuration file in "Train001/ndl_config.json", start the training and validation phase by running the following two commands:
     ```
-    chmd +x resources/scripts/train.py 
-    ./resources/scripts/train.py path/to/Train001
+    python resources/scripts/train.py path/to/Train001
     ```
 
 ## Inference
 * Use the script "predict.py" to perform inference by running:
     ```
-    chmd +x resources/scripts/predict.py
-    ./resources/scripts/predict.py path/to/Train001
+    python resources/scripts/predict.py path/to/Train001
     ```
-* The predictions are generated in "path/to/Train001/Predictions". For each patient, the predictions are saved in a separate JSON file. Each prediction includes the center coordinates (x, y, z) in mm, the radius in mm, and a confidence score as a percentage.
+* The predictions of the validation and testing patients of the split file are generated in "path/to/Train001/Predictions/<epochs>_epochs/...". For each patient, the predictions are saved in a separate JSON file named after the patient folder ("P0001.json"), or after the subject and session for session folders ("sub-013/ses-20101220" gives "sub-013_ses-20101220.json"). Each prediction includes the center coordinates (x, y, z) in mm, the radius in mm, and a confidence score between 0 and 1.
 
 
 ## Evaluation
 - Evaluate the model using the script "evaluate.py" by running:
     ```
-    chmd +x resources/scripts/evaluate.py
-    ./resources/scripts/evaluate.py path/to/Train001
+    python resources/scripts/evaluate.py path/to/Train001/Predictions/<epochs>_epochs/Validation_0.01/None_detections_per_patch
     ```
-- After running the evaluation script, the results are generated as a PNG figure that summarizes the performance of the model on the test images. This figure can be found in the "path/to/Train001/Predictions" directory. 
+- The validation and testing patients of the split file are evaluated against their "truth file" (see "ndl_config.json"). Detections are matched from the most to the least confident, each to the not yet detected aneurysm it overlaps most (IoU >= 0.1); other detections are false positives.
+- After running the evaluation script, the results are generated as a CSV table of the detections and a PNG figure that summarizes the performance of the model on the test images, both in the predictions directory.
 
 # Annotations and Reproductibity
 In order to overcome the limitations of voxel-wise annotation, weak annotation is used to annotate aneurysms. This involves approximating the shape of aneurysms using spheres. 
