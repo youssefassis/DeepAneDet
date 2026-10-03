@@ -32,14 +32,15 @@ def create_trainer(config, device, model, optimizer, lr_scheduler, loss_criterio
                    warmup_epochs=config['warmEpochs'],
                    num_epoch = num_epoch,
                    scales=scales,
-                   anchors=anchors)
+                   anchors=anchors,
+                   mixed_precision=config.get('mixed_precision', True))
     if state is not None:
         trainer.resume(state)
     return trainer
 
 class Trainer:
     def __init__(self, model, optimizer, lr_scheduler, loss_criterion, device, loaders, model_path, save_model_each_epochs, 
-                 max_num_epochs, max_iterations, warmup_epochs, num_epoch, scales, anchors):
+                 max_num_epochs, max_iterations, warmup_epochs, num_epoch, scales, anchors, mixed_precision=True):
         self.model = model
         self.optimizer = optimizer
         self.scheduler = lr_scheduler
@@ -54,7 +55,9 @@ class Trainer:
         self.num_epoch = num_epoch
         self.save_model_each_epochs = save_model_each_epochs
         self.warmup_epochs = warmup_epochs
-        self.mixed_precision = GradScaler('cuda')
+        self.device_type = torch.device(device).type
+        self.use_amp = mixed_precision and self.device_type == 'cuda' # float16 mixed precision is for GPUs
+        self.mixed_precision = GradScaler(self.device_type, enabled=self.use_amp)
                     
         self.writer = SummaryWriter(log_dir = os.path.join(self.checkpoint_dir, 'logs'))
             
@@ -101,7 +104,7 @@ class Trainer:
             
             self.optimizer.zero_grad()
             # Mixed precision training: Forward pass
-            with torch.amp.autocast('cuda'):
+            with torch.amp.autocast(self.device_type, enabled=self.use_amp):
                 pred_spheres = self.model(input_volume)
                 loss = self.loss_criterion(predictions = pred_spheres, targets = target_spheres) if self.scaled_anchors is None else self.loss_criterion(predictions = pred_spheres, targets = target_spheres, anchors = self.scaled_anchors)
                 
