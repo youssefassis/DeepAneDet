@@ -1,21 +1,16 @@
-connected-components-3d
-ipympl
-ipywidgets
-jupyter
-jupyterlab
+joblib
 matplotlib
 nibabel
-numba
 numpy
 pandas
-Pillow
-plotly
 scikit-image
 scikit-learn
 scipy
 SimpleITK
-tables
 tensorboard
 tensorboardX
-torch
+torch>=2.3
 tqdm
+# JupyterLab, launched by the Docker image
+jupyter
+jupyterlab
