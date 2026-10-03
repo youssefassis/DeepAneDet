@@ -59,3 +59,18 @@ def test_extract_points_for_a_patient_without_aneurysm(patient_dir):
 
 def test_points_to_spheres_without_points_has_sphere_columns():
     assert dio.points_to_spheres(None).shape == (0, 4)
+
+
+def test_generate_masks_burns_the_aneurysm_spheres(tmp_path):
+    from Data.Generators import generate_masks_nii
+
+    patient = tmp_path / "P0001"
+    patient.mkdir()
+    ni.save(ni.Nifti1Image(np.zeros((20, 20, 20), np.float32), np.eye(4)), patient / "volume.nii.gz")
+    (patient / "config.json").write_text(json.dumps({"init volume": "volume.nii.gz"}))
+    (patient / "F.csv").write_text("x,y,z\n8,10,10\n12,10,10\n")  # sphere of radius 2 centered on (10,10,10)
+
+    generate_masks_nii(str(tmp_path))
+
+    mask = ni.load(patient / "mask_spheres.nii.gz").get_fdata()
+    assert mask[10, 10, 10] == 1 and mask[10, 10, 13] == 0
