@@ -1,3 +1,5 @@
+> **Note:** This repository is a copy of the original code hosted at [gitlab.inria.fr/yassis/DeepAneDet](https://gitlab.inria.fr/yassis/DeepAneDet), developed during my PhD at Inria/LORIA.
+
 # DeepAneDet
 
 Detection of intracranial aneurysms in 3D Time-of-Flight MRA as an object detection problem: a 3D single-stage,
@@ -25,7 +27,7 @@ object detection problems.
 ## Installation
 The project uses [uv](https://docs.astral.sh/uv/) and Python 3.10+:
 ```
-git clone https://gitlab.inria.fr/yassis/DeepAneDet.git && cd DeepAneDet
+git clone https://github.com/youssefassis/DeepAneDet.git && cd DeepAneDet
 uv sync --extra cu126    # NVIDIA GPU (CUDA 12.6)
 uv sync --extra cpu      # or CPU only
 ```
