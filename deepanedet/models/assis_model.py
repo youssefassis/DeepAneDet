@@ -1,6 +1,5 @@
-import torch
 import torch.nn as nn
-from deepanedet.models.building_blocks import number_of_features_per_level, create_encoders, DoubleConv, create_conv
+from deepanedet.models.building_blocks import number_of_features_per_level, create_encoders, DoubleConv
 
 def createBN (in_channels, eps=1e-5, affine=True):
     '''

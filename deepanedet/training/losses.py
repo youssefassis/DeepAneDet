@@ -126,40 +126,4 @@ def get_loss_criterion(name):
         return YOLO_Loss_anchors()
     else:
         raise RuntimeError(f"Unsupported loss function: '{name}'")
-        
-        
-# class YOLO_Regression_Loss(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.mse = nn.MSELoss()
-#         self.confidence_loss = nn.BCEWithLogitsLoss()
-#         self.sigmoid = nn.Sigmoid()
-
-#         logger.info("BCEWithLogitsLoss is used")
-        
-#         logger.info(f"YOLO_Regression_Loss is used ({self.confidence_loss} and {self.mse})")
-
-#     def compute_loss(self, prediction, target):            # [x y z radius confidence]  
-#         batch_size = prediction[0].shape[0]
-#         mask = target[0][..., 0] == 1
-#         n_pos_cells = mask.sum().float()
-        
-#         confidence_obj_loss = self.confidence_loss(prediction[0][..., 0][mask], target[0][..., 0][mask])
-#         confidence_noobj_loss = self.confidence_loss(prediction[0][..., 0][~mask], target[0][..., 0][~mask])
-
-#         confidence_loss = confidence_obj_loss + 0.5 * n_pos_cells * confidence_noobj_loss
-        
-#         regression_loss = 0.
-#         if n_pos_cells > 0:
-#             # Regression MSE
-#             prediction[1][..., 0:3] = self.sigmoid(prediction[1][..., 0:3]) # Normalize x y z coords (relative to grid size) ---- Center
-#             regression_loss = self.mse(prediction[1][..., 0:6][mask], target[1][..., 0:6][mask])
-
-#         return (confidence_loss + 5 * regression_loss) / batch_size
-    
-#     def forward(self, predictions, targets): # compute loss for each of the three scales [[Batch, 1, S, S, S, params], [Batch, 1, S, S, S, 1]]
-#         loss = 0.
-#         for i in range(len(predictions)):
-#             loss += self.compute_loss(predictions[i], targets[i])
-#         return loss
 

@@ -1,7 +1,6 @@
-import os, json, sys, torch, math
+import json, torch
 import numpy as np    
 from nibabel.affines import apply_affine
-from deepanedet.data import io as dio
 
 
 def to_tuple( value, length: int = 1):
@@ -79,8 +78,6 @@ def cells_to_spheres(predictions, obj_thresh, input_shape, anchors, is_pred, exp
                             h = h * (input_shape[0] / grid_h)
                             d = d * (input_shape[0] / grid_d)
                             
-                            #spheres.append([x, y, z, w, h, d, confidence])
-                            # or
                             radius = np.max([w, h, d])
                             spheres.append([x, y, z, radius, confidence])
     return spheres

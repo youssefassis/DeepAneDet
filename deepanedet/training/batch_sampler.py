@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from deepanedet.utils import get_logger
-import random
 from functools import reduce
 
 logger = get_logger("Balanced Batch Sampler")
@@ -80,7 +79,6 @@ class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
         for batch_idx in range(self.nb_batches):
             left_samples = pos_indices.shape[0] + neg_indices.shape[0]
             if left_samples >= self.batch_size:                
-                neg_ratio = neg_indices.shape[0] / left_samples
                 pos_ratio = pos_indices.shape[0] / left_samples
                 nb_pos_samples = int(pos_ratio * self.batch_size)
                 nb_neg_samples = self.batch_size - nb_pos_samples

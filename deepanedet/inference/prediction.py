@@ -1,11 +1,10 @@
-import os, math, json, sys
+import os, math
 import torch
 
 import numpy as np
 import SimpleITK as sitk
 from tqdm import tqdm
 from deepanedet.data import io as dio
-from deepanedet import utils
 from deepanedet.helpers import cells_to_spheres, non_max_suppression, spheres_to_metric, save_spheres, keep_only_intersected_spheres, flip_coords
 
 def calculate_origin_offset(new_spacing, old_spacing):

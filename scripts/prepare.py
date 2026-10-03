@@ -73,8 +73,6 @@ def main():
     config["positive sample distortion"] = 3
     config["positive sample scaling" ] = None
     config["positive duplicates"] = 50
-    #config["large positive duplicates"] = 50
-    #config["small positive duplicates"] = 50
     config["save model each n epoch"] = 10
     
     config['test_dir'] = os.path.join(config['working_dir'], config['test_name'])
