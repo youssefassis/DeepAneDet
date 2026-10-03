@@ -2,7 +2,7 @@ import os, torch
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from torch.amp import GradScaler
-from schedulers import Poly, WarmupLRScheduler, WarmupScheduler
+from schedulers import Poly, ReduceLROnPlateau, WarmupLRScheduler, WarmupScheduler
 from utils import get_logger, RunningAverage, save_checkpoint, load_checkpoint
 
 logger = get_logger('Trainer')
@@ -16,9 +16,10 @@ def create_trainer(config, device, model, optimizer, lr_scheduler, loss_criterio
         num_epoch = state['epoch']    
     else:
         logger.info("Training from scratch")
+        state = None
         num_epoch = 0
         
-    return Trainer(model = model,
+    trainer = Trainer(model = model,
                    optimizer = optimizer,
                    lr_scheduler = lr_scheduler,
                    loss_criterion = loss_criterion,
@@ -31,11 +32,15 @@ def create_trainer(config, device, model, optimizer, lr_scheduler, loss_criterio
                    warmup_epochs=config['warmEpochs'],
                    num_epoch = num_epoch,
                    scales=scales,
-                   anchors=anchors)
+                   anchors=anchors,
+                   mixed_precision=config.get('mixed_precision', True))
+    if state is not None:
+        trainer.resume(state)
+    return trainer
 
 class Trainer:
     def __init__(self, model, optimizer, lr_scheduler, loss_criterion, device, loaders, model_path, save_model_each_epochs, 
-                 max_num_epochs, max_iterations, warmup_epochs, num_epoch, scales, anchors):
+                 max_num_epochs, max_iterations, warmup_epochs, num_epoch, scales, anchors, mixed_precision=True):
         self.model = model
         self.optimizer = optimizer
         self.scheduler = lr_scheduler
@@ -50,7 +55,9 @@ class Trainer:
         self.num_epoch = num_epoch
         self.save_model_each_epochs = save_model_each_epochs
         self.warmup_epochs = warmup_epochs
-        self.mixed_precision = GradScaler('cuda')
+        self.device_type = torch.device(device).type
+        self.use_amp = mixed_precision and self.device_type == 'cuda' # float16 mixed precision is for GPUs
+        self.mixed_precision = GradScaler(self.device_type, enabled=self.use_amp)
                     
         self.writer = SummaryWriter(log_dir = os.path.join(self.checkpoint_dir, 'logs'))
             
@@ -58,6 +65,15 @@ class Trainer:
                                torch.tensor(scales).unsqueeze(1).unsqueeze(1).repeat(1, len(anchors)//len(scales), 1)).to(self.device) if anchors is not None else None
             
         
+    def resume(self, state):
+        '''
+        Restores the learning rate schedule and the loss scaling saved in a checkpoint
+        '''
+        if self.scheduler is not None and state.get('scheduler_state_dict') is not None:
+            self.scheduler.load_state_dict(state['scheduler_state_dict'])
+        if state.get('mixed_precision'): # empty when saved without CUDA
+            self.mixed_precision.load_state_dict(state['mixed_precision'])
+
     def fit(self):
         logger.info(f"Training the model for {self.max_num_epochs - self.num_epoch} epochs")
         for epoch in range(self.num_epoch, self.max_num_epochs):
@@ -88,7 +104,7 @@ class Trainer:
             
             self.optimizer.zero_grad()
             # Mixed precision training: Forward pass
-            with torch.amp.autocast('cuda'):
+            with torch.amp.autocast(self.device_type, enabled=self.use_amp):
                 pred_spheres = self.model(input_volume)
                 loss = self.loss_criterion(predictions = pred_spheres, targets = target_spheres) if self.scaled_anchors is None else self.loss_criterion(predictions = pred_spheres, targets = target_spheres, anchors = self.scaled_anchors)
                 
@@ -124,31 +140,20 @@ class Trainer:
                     self.scheduler.schedulers[0].step()
 
         else: # after validation loop
-            # Poly
-            if isinstance(self.scheduler, Poly):
-                self.scheduler.step(epoch = self.num_epoch)
-
-            elif isinstance(self.scheduler, WarmupScheduler):                    
-                if isinstance(self.scheduler.schedulers[1], Poly):
-                    self.scheduler.schedulers[1].step(epoch = self.num_epoch)
+            # Poly or ReduceLROnPlateau, alone or after the warmup
+            scheduler = self.scheduler.schedulers[-1] if isinstance(self.scheduler, WarmupScheduler) else self.scheduler
+            if isinstance(scheduler, (Poly, ReduceLROnPlateau)):
+                scheduler.step(epoch = self.num_epoch)
 
     
     def _save_checkpoint(self, is_best, last_score, epoch=None):
-        if self.mixed_precision.state_dict() is None:
-            state = {'epoch': self.num_epoch + 1,
-                     'model_state_dict': self.model.state_dict(),
-                     'last_eval_score': last_score,
-                     'optimizer_state_dict': self.optimizer.state_dict(),
-                     'scheduler_state_dict': self.scheduler.state_dict(),
-                     'num_epoch': self.num_epoch }
-        else:
-            state = {'epoch': self.num_epoch + 1,
-                     'model_state_dict': self.model.state_dict(),
-                     'last_eval_score': last_score,
-                     'optimizer_state_dict': self.optimizer.state_dict(),
-                     'scheduler_state_dict': self.scheduler.state_dict(),
-                     'num_epoch': self.num_epoch,
-                     'mixed_precision': self.mixed_precision.state_dict() }
+        state = {'epoch': self.num_epoch + 1,
+                 'model_state_dict': self.model.state_dict(),
+                 'last_eval_score': last_score,
+                 'optimizer_state_dict': self.optimizer.state_dict(),
+                 'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler is not None else None,
+                 'num_epoch': self.num_epoch,
+                 'mixed_precision': self.mixed_precision.state_dict() }
         return save_checkpoint(state, 
                                is_best=is_best, 
                                checkpoint_dir=self.checkpoint_dir,
