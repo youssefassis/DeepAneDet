@@ -8,8 +8,8 @@ def main():
     try:
         with open(os.path.join(sys.argv[1], 'ndl_config.json'), 'r') as f:
             config = json.load(f)
-        if not 'scales' in config:
-        config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
+        if not 'scales' in config or config['scales'] is None:
+            config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
     except:
         print(f'No such Training config file')
         exit()
