@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
-import os, sys, json, torch, math
+import os, sys, torch
 import Data.IO as dio
-from utils import get_logger, load_model
+from utils import get_logger, load_model, load_training_config
 from prediction import ndl_run_validation_cases
 
 def main():
-    try:
-        with open(os.path.join(sys.argv[1], 'ndl_config.json'), 'r') as f:
-            config = json.load(f)
-        if not 'scales' in config or config['scales'] is None:
-            config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
-    except:
-        print(f'No such Training config file')
-        exit()
+    if len(sys.argv) != 2:
+        sys.exit(f"Usage: {sys.argv[0]} path/to/Train001")
+    config = load_training_config(sys.argv[1])
 
     # Load Model
     logger = get_logger('Model')

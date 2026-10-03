@@ -1,7 +1,18 @@
-import logging, os, sys, shutil
+import json, logging, math, os, sys, shutil
 import numpy as np
 import torch
 import copy
+
+def load_training_config(train_dir):
+    '''
+    Reads the ndl_config.json of a training directory (see scripts/prepare.py). Missing scales default to one
+    detection grid cell per 8 patch voxels.
+    '''
+    with open(os.path.join(train_dir, 'ndl_config.json'), 'r') as f:
+        config = json.load(f)
+    if config.get('scales') is None:
+        config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
+    return config
 
 def get_model(config, default_init="He", device='cpu'):
     logger = get_logger('Model')
@@ -158,7 +169,7 @@ def create_optimizer(model, config):
     assert optim in ["Adam", "SGD"]
     
     weight_decay = config["weight_decay"]
-    learning_rate = 1e-8 if config["lr"]== "WarmupPoly" else  config["initial_learning_rate"] 
+    learning_rate = 1e-8 if str(config["lr"]).startswith("Warmup") else config["initial_learning_rate"] # warmup schedulers raise it
 
     if optim == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay, amsgrad=True)

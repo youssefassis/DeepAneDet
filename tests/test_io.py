@@ -1,4 +1,5 @@
 import json
+import os
 
 import nibabel as ni
 import numpy as np
@@ -29,8 +30,7 @@ def test_normal_normalization_standardizes(volume_file):
 
 
 @pytest.fixture
-def patient_dir(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)  # restores the working directory changed by extractPointsFromPatient
+def patient_dir(tmp_path):
     patient = tmp_path / "P0001"
     patient.mkdir()
     vol = np.random.default_rng(0).random((30, 30, 30)).astype(np.float32)
@@ -41,8 +41,14 @@ def patient_dir(tmp_path, monkeypatch):
     return patient
 
 
-def test_extract_points_writes_vessel_and_parenchyma_points(patient_dir):
+def test_extract_points_writes_vessel_and_parenchyma_points(patient_dir, monkeypatch, tmp_path):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
     dio.extractPointsFromPatient(str(patient_dir), r=5, nbPoints=5)
+
+    assert list(elsewhere.iterdir()) == [] and os.getcwd() == str(elsewhere)
 
     points = pd.read_csv(patient_dir / "points.csv")
     assert set(points["type"]) == {"Vessel", "Parenchyma"}
@@ -74,3 +80,67 @@ def test_generate_masks_burns_the_aneurysm_spheres(tmp_path):
 
     mask = ni.load(patient / "mask_spheres.nii.gz").get_fdata()
     assert mask[10, 10, 10] == 1 and mask[10, 10, 13] == 0
+
+
+@pytest.mark.parametrize(
+    "patient_dir, name",
+    [
+        ("/data/P0001", "P0001"),
+        ("/data/P0001/", "P0001"),
+        ("/data/sub-013/ses-20101220", "sub-013_ses-20101220"),
+    ],
+)
+def test_patient_name(patient_dir, name):
+    assert dio.patient_name(patient_dir) == name
+
+
+def test_read_points_keeps_the_coordinates(tmp_path):
+    points = tmp_path / "points.csv"
+    points.write_text(",x,y,z,type\n0,1,2,3,Vessel\n1,4,5,6,Vessel\n2,7,8,9,Parenchyma\n")
+
+    assert dio.read_points_from_csv(points).tolist() == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    assert sorted(dio.read_points_from_csv(points, nb=1)[:, 0]) in ([1, 7], [4, 7])
+
+
+def test_read_points_reports_a_missing_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        dio.read_points_from_csv(tmp_path / "points.csv")
+
+
+def test_read_points_reports_missing_coordinates(tmp_path):
+    points = tmp_path / "points.csv"
+    points.write_text("x,y\n1,2\n")
+
+    with pytest.raises(KeyError):
+        dio.read_points_from_csv(points)
+
+
+def test_save_split_updates_an_existing_file(tmp_path):
+    split = tmp_path / "fold1.json"
+    split.write_text(json.dumps({"comment": "kept"}))
+
+    dio.saveSplit(str(split), ["P0001"], ["P0002"], ["P0003"])
+
+    assert json.loads(split.read_text())["comment"] == "kept"
+    assert dio.readSplit(str(split)) == (["P0001"], ["P0002"], ["P0003"])
+
+
+def test_save_split_reports_a_corrupt_file(tmp_path):
+    split = tmp_path / "fold1.json"
+    split.write_text("{")
+
+    with pytest.raises(json.JSONDecodeError):
+        dio.saveSplit(str(split), [], [], [])
+
+
+def test_generate_masks_of_a_patient_without_aneurysm_is_empty(tmp_path):
+    from Data.Generators import generate_masks_nii
+
+    patient = tmp_path / "P0001"
+    patient.mkdir()
+    ni.save(ni.Nifti1Image(np.ones((5, 5, 5), np.float32), np.eye(4)), patient / "volume.nii.gz")
+    (patient / "config.json").write_text(json.dumps({"init volume": "volume.nii.gz"}))
+
+    generate_masks_nii(str(tmp_path))
+
+    assert ni.load(patient / "mask_spheres.nii.gz").get_fdata().sum() == 0
