@@ -97,3 +97,13 @@ def test_training_without_scheduler_saves_a_checkpoint(train, tmp_path):
     train(n_epochs=1, lr=None)
 
     assert (tmp_path / "last_checkpoint.pytorch").is_file()
+
+
+def test_resumed_training_continues_the_warmup(train, model_config, tmp_path):
+    warmup = {"lr": "WarmupPoly", "warmEpochs": 3, "start_epoch": 4}
+    uninterrupted = lr(train(n_epochs=2, **warmup, model_file=str(tmp_path / "other" / "last_checkpoint.pytorch")))
+
+    train(n_epochs=1, **warmup)
+    resumed = lr(train(n_epochs=2, **warmup))
+
+    assert resumed == pytest.approx(uninterrupted)
