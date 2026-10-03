@@ -34,6 +34,14 @@ def fetch_patient_dirs(base_dir):
     '''
     return [os.path.dirname(subject_conf) for subject_conf in glob.glob(os.path.join(base_dir, 'P????', 'config.json'))]
 
+def patient_name(patient_dir):
+    '''
+    Name identifying a patient directory: its folder name (e.g. P0001), prefixed by the subject for
+    BIDS-like session folders (.../sub-013/ses-20101220 -> sub-013_ses-20101220, as in Reproducibility/Annotations)
+    '''
+    parent, name = os.path.split(os.path.normpath(patient_dir))
+    return f"{os.path.basename(parent)}_{name}" if name.startswith("ses-") else name
+
 def apply_transformation(elements, trans):
     '''
     Parameters:
@@ -64,21 +72,16 @@ def save_nii_to_file(fname, vol, vox2met):
     
 def read_points_from_csv(fname, nb = None):
     '''
-    returns a list of points, read from a csv file. Coordinates are stored in columns named 'x', 'y' and 'z'
+    returns a Nx3 array of points, read from a csv file. Coordinates are stored in columns named 'x', 'y' and 'z'.
+    If nb is set and the file has a 'type' column (as points.csv), at most nb random 'Vessel' and nb random
+    'Parenchyma' points are returned.
     '''
-    try:
-        try:
-            d = pd.read_csv(fname, usecols = ['x','y','z', 'type'])
-            if nb is not None:
-                vessel = sklearn.utils.shuffle(d[d["type"]=='Vessel'])[:nb]
-                parenchyma = sklearn.utils.shuffle(d[d["type"]=='Parenchyma'])[:nb]
-                d = pd.concat([vessel, parenchyma])
-            return d.drop(columns=['type']).to_numpy()
-        except:
-            d = pd.read_csv(fname, usecols = ['x','y','z'])
-        return d.to_numpy()
-    except:
-        return None
+    d = pd.read_csv(fname)
+    if nb is not None and 'type' in d:
+        vessel = sklearn.utils.shuffle(d[d["type"]=='Vessel'])[:nb]
+        parenchyma = sklearn.utils.shuffle(d[d["type"]=='Parenchyma'])[:nb]
+        d = pd.concat([vessel, parenchyma])
+    return d[['x','y','z']].to_numpy()
 
 def points_to_spheres(p):
     '''
@@ -212,11 +215,10 @@ def saveSplit(cfg, train_list, valid_list, test_list):
     'validation list' and 'testing list'
     If the file already exists, it is updated, eventually with new keys as above, else it is created with these three keys.
     '''
-    try:
+    d = {}
+    if os.path.isfile(cfg):
         with open(cfg,'r') as f:
             d = json.load(f)
-    except:
-        d = {}
     d['training list'] = train_list
     d['validation list'] = valid_list
     d['testing list'] = test_list
@@ -291,13 +293,12 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
     points from the vessel and parenchyma based on the specified method and exports the points as a 
     CSV file, which is then converted to an FCSV file.
     '''
-    os.chdir(patient)
     print('Load volume from disk: '+patient)
-    with open("config.json", 'r') as f:
+    with open(os.path.join(patient, "config.json"), 'r') as f:
         d = json.load(f)
-    vol, vox2met = read_nii_from_file(d['noskull volume'])
+    vol, vox2met = read_nii_from_file(os.path.join(patient, d['noskull volume']))
     print(f'Extracting points')
-    ane_file = d.get('pts aneurysm')
+    ane_file = os.path.join(patient, d['pts aneurysm']) if d.get('pts aneurysm') else None
     fPoints = read_points_from_csv(ane_file) if ane_file and os.path.isfile(ane_file) else None
     fp = points_to_spheres(fPoints)[:,:-1] # keep the centers, drop the radii
     q = None
@@ -329,107 +330,19 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
         points = pd.concat([ps, qs])
     else:
         points = ps
-    points.to_csv(outfile)
-    csv2fcsv(outfile)
+    points.to_csv(os.path.join(patient, outfile))
+    csv2fcsv(os.path.join(patient, outfile))
 
 def extractPoints(dataPath, r = 20, nbPoints=100, outfile="points.csv", randomPoints = False):
     patients = fetch_patient_dirs(dataPath)
     for patient in patients:
         extractPointsFromPatient(patient, r=r, nbPoints=nbPoints, outfile=outfile, randomPoints=randomPoints)
 
-def countAnev(p):
-    """
-    This function takes a patient directory path p (String) as input, and returns 
-    the number of aneurysms found in the patient directory. 
-    Here's a more detailed description of how the function works:
-    1- The function changes the current working directory to the patient directory p.
-    2- The function reads the config.json file in the patient directory and stores 
-    the content in the variable c.
-    3- The function reads the aneurysm locations from the file path specified in the 
-    c['pts aneurysm'] key. It assumes that the file is in CSV format and uses the 
-    read_points_from_csv() function to read the points from the file. The resulting 
-    array aloc contains the locations of the aneurysms.
-    4- The function changes the current working directory back to the parent directory.
-    5- Finally, the function returns the number of aneurysms by dividing the length of
-    aloc by 2. This is because each row in aloc represents the coordinates of two points
-    that define a line segment representing an aneurysm.
-    """
-    os.chdir(p)
-    with open('config.json', 'r') as f:
-        c = json.load(f)
-    # read aneurysm locations
-    aloc=read_points_from_csv(c['pts aneurysm'])
-    os.chdir('..')
-    return len(aloc)/2
-
-def SizeAnev(p):
+def SizeAnev(p, truth_file):
     '''
-    This function calculates the size of aneurysms in a given directory path p.
-    1- Creates an empty list sizes to store the aneurysm sizes.
-    2- Changes the current working directory to the given path p.
-    3- Reads the config.json file in the current directory using json.load() and stores the content in variable c.
-    4- Checks if the pts aneurysm file exists, and if so, reads the points from the file using a function 
-    read_points_from_csv() (which is not defined in the code you provided).
-    5- Calculates the size of each aneurysm by computing the Euclidean distance between pairs of points in the list
-    points, and appends each size to the sizes list.
-    
-    Returns the sizes list.
+    Returns the diameters of the aneurysms of patient directory p, read as point pairs from its truth_file (none if missing)
     '''
-    sizes = []
-    os.chdir(p)
-    with open('config.json', 'r') as f:
-        c = json.load(f)
-    # read aneurysm locations
-    if c['pts aneurysm'] and os.path.isfile(c['pts aneurysm']):
-        points = read_points_from_csv(c['pts aneurysm'])
-        for i in range(0, points.shape[0], 2):
-            p1, p2 = points[i], points[i+1]
-            size = np.linalg.norm(p1 - p2, axis=0)
-            sizes.append(size)
-    return sizes
-
-
-def get_patient_dir_from_name(patient_name):
-    '''
-    This function takes a patient name as input and returns the path to the patient's directory. 
-    Here's a description of how the function works:
-    1- If the patient name contains "P0", it is assumed to be from the CHRU or ADAM dataset. 
-    The function first checks if a directory exists in the CHRU dataset with the patient name. 
-    If it does, it returns the path to that directory. Otherwise, it checks for the patient name
-    in various subdirectories of the ADAM dataset, including "Unique", "Basic", "Follow-up", and
-    "healthy_patients". If it finds the patient name in one of these subdirectories, it returns
-    the path to the corresponding directory.
-    2- If the patient name does not contain "P0", it is assumed to be from the CHUV Lausanne dataset.
-    The function constructs the path to the patient's directory by replacing the "sub" prefix with 
-    "sub-" and taking the first seven characters of the patient name. It checks if the directory 
-    exists in the "healthy_patients", "Sphere_annotation", or "Voxel_annotation" subdirectories of 
-    the CHUV Lausanne dataset, in that order. If it finds the patient directory in one of these 
-    subdirectories, it selects the first session directory in the patient directory (which is assumed
-    to exist) and returns its path.
-    '''
-    # CHRU or ADAM
-    if "P0" in patient_name:
-        patient = os.path.join("/path/to/Data/CHRU/", patient_name)
-        if os.path.isdir(patient): # CHRU
-            return patient
-        else: # ADAM
-            main_dir = "/path/to/Data/ADAM/"
-            if os.path.isdir(os.path.join(main_dir, "Unique", patient_name)): # unique folder
-                return os.path.join(main_dir, "Unique", patient_name)
-            elif os.path.isdir(os.path.join(main_dir, "Basic", patient_name)): # Basic folder
-                return os.path.join(main_dir, "Basic", patient_name)
-            elif os.path.isdir(os.path.join(main_dir, "Follow-up", patient_name)): # Follow-up folder
-                return os.path.join(main_dir, "healthy_patients", patient_name)
-            elif os.path.isdir(os.path.join(main_dir, "healthy_patients", patient_name)):
-                return os.path.join(main_dir, "healthy_patients", patient_name)
-    # CHUV Lausanne
-    else:
-        main_dir = "/path/to/Data/CHUV/"
-        patient = os.path.join(main_dir, "healthy_patients", patient_name.replace("sub", "sub-")[:7])
-        if not os.path.isdir(patient):
-            patient = os.path.join(main_dir, "Sphere_annotation", patient_name.replace("sub", "sub-")[:7])
-            if not os.path.isdir(patient):
-                patient = os.path.join(main_dir, "Voxel_annotation", patient_name.replace("sub", "sub-")[:7])
-        # acces to session dir
-        patient = [os.path.join(patient, f) for f in sorted(os.listdir(patient)) if "." not in f][0]
-        return patient
+    truth_path = os.path.join(p, truth_file)
+    if not os.path.isfile(truth_path):
+        return []
+    return list(2 * points_to_spheres(read_points_from_csv(truth_path))[:, 3])
