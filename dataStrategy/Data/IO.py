@@ -137,13 +137,13 @@ def read_patient_data(vol_file, ane_file, normalize=None):
 
     # should we use scikit.learn.normalize (or transform)?
     if normalize == 'Linear':
-        d = normalize(d)
+        d = rescale(d)
     elif normalize == 'Normal':
         d = standardize(d)
 
     return {'data':d, 'affine':affine, 'aneurysms':s}
 
-def normalize(vol):
+def rescale(vol):
     '''
     Normalizes the data between [0, 1] of the input volume
     '''
