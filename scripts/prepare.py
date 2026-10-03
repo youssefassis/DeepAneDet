@@ -5,7 +5,7 @@ def parse_args():
                                                  "The other training settings are set below in this file.")
     parser.add_argument("data_dir", help="directory of the patients")
     parser.add_argument("work_dir", help="directory of the trainings")
-    parser.add_argument("split_file", help="training, validation and testing patients (e.g. Reproducibility/fold1.json)")
+    parser.add_argument("split_file", help="training, validation and testing patients (e.g. reproducibility/fold1.json)")
     parser.add_argument("--name", help="training directory name (default: the split file name, e.g. fold1)")
     return parser.parse_args()
 
