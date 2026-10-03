@@ -7,7 +7,7 @@ pythonpath = ["dataStrategy", "models", "resources", "resources/scripts"]
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["resources/Baselines"]
+extend-exclude = ["baselines"]
 
 [tool.ruff.lint]
 # syntax errors and undefined names
