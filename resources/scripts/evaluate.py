@@ -8,6 +8,14 @@ import Data.IO as dio
 from sklearn.metrics import auc
 import scipy.stats as stats
 
+def summarize(values):
+    '''
+    Returns (mean, std, max, min) of values, all nan when there is no value (e.g. no true positive)
+    '''
+    if len(values) == 0:
+        return (float('nan'),) * 4
+    return np.mean(values), np.std(values), np.max(values), np.min(values)
+
 def main():
     predictions_dir = sys.argv[1]
     print(predictions_dir)
@@ -38,6 +46,8 @@ def main():
     
     # Generate Dataframe
     tot_aneurysms = sum([det['TP'] for det in detections]) + len(FNs)
+    if tot_aneurysms == 0:
+        sys.exit("No aneurysm in the evaluated patients: sensitivity is undefined")
 
     AccTP, AccFP = 0, 0
     for cmp, detection in enumerate(detections):
@@ -165,7 +175,9 @@ def main():
         sensitivities.append((len(confidence_TP_tmp)/tot_aneurysms)*100)
 
     ax4.plot(fps_per_case + [0], sensitivities + [0],  '-', color="green")
-    ax4.set_title(f'FROC Curve (AUC={round( 100 - auc([100]+sensitivities, [100]+[(f/max(fps_per_case))*100 for f in fps_per_case]) /100, 3)} %)')
+    # undefined (nan) without any false positive to normalize the FPs/case
+    froc_auc = 100 - auc([100]+sensitivities, [100]+[(f/max(fps_per_case))*100 for f in fps_per_case]) /100 if max(fps_per_case) > 0 else float('nan')
+    ax4.set_title(f'FROC Curve (AUC={round(froc_auc, 3)} %)')
 
     ax4.set(xlabel='FP/case', ylabel='Sensitivity (Recall) ')
     ax4.grid()
@@ -206,7 +218,8 @@ def main():
     ax7.scatter(IoU_TP, confidence_TP, c='green', label=f"TP ({len(IoU_TP)})", alpha=1)
     ax7.scatter(IoU_FP, [f['Confidence'] for f in detections if f['FP'] and f['IoU']>0], c='red', label=f"FP ({len(IoU_FP)})", alpha=1)
     ax7.axvline(x=10, linestyle=':')
-    ax7.set_title(f'IoU vs Confidence\navg = {round(sum(IoU_TP)/len(IoU_TP), 2)}% ± {round(np.std(np.array(IoU_TP)),2)}%; max={round(max(IoU_TP),2)}%; min = {round(min(IoU_TP), 2)}%')
+    iou_avg, iou_std, iou_max, iou_min = summarize(IoU_TP)
+    ax7.set_title(f'IoU vs Confidence\navg = {round(iou_avg, 2)}% ± {round(iou_std,2)}%; max={round(iou_max,2)}%; min = {round(iou_min, 2)}%')
     ax7.set_xlabel('IoU (%)')
     ax7.set_ylabel('Confidence score (%)')
     ax7.set_xlim((-5, 100))
@@ -221,7 +234,7 @@ def main():
     for pat in patients:
         test_aneurysms += dio.SizeAnev(pat, config['truth file'])
 
-    ax8.set_xticks([i for i in range(0, int(np.floor(max(train_aneurysms+test_aneurysms)))+1, 2)])
+    ax8.set_xticks([i for i in range(0, int(np.floor(max(train_aneurysms+test_aneurysms, default=0)))+1, 2)])
     ax8.hist(train_aneurysms, bins=range(0, 20), alpha=0.3, color='red',  edgecolor='black', linewidth=1.5)
     ax8.hist(test_aneurysms, bins=range(0, 20), alpha=0.3, color='blue', edgecolor='black', linewidth=1.5)
 
@@ -237,8 +250,9 @@ def main():
     ax9.scatter([diameters_TP_GT[idx] for idx, (i,j) in enumerate(zip(diameters_TP_GT, diameters_TP)) if i<=j], [confidence_TP[idx] for idx, (i,j) in enumerate(zip(diameters_TP_GT, diameters_TP)) if i<=j], s=difference2, color='g',  label=f'GT < Pred ({len(difference2)})', edgecolors='g', alpha=0.3) # facecolors='none'
 
     ax9.legend(loc='lower right')
-    ax9.set_title(f"Predicted and GT diameters error\navg={round(sum([abs(i-j) for i,j in zip(diameters_TP_GT, diameters_TP)])/len(difference1+difference2),2)}mm ± {round(np.std(np.array([abs(i-j) for i,j in zip(diameters_TP_GT, diameters_TP)])),2)}mm; max={round(max([abs(i-j) for i,j in zip(diameters_TP_GT, diameters_TP)]),2)}mm; \
-    min={round(min([abs(i-j) for i,j in zip(diameters_TP_GT, diameters_TP)]),2)}mm")
+    error_avg, error_std, error_max, error_min = summarize([abs(i-j) for i,j in zip(diameters_TP_GT, diameters_TP)])
+    ax9.set_title(f"Predicted and GT diameters error\navg={round(error_avg,2)}mm ± {round(error_std,2)}mm; max={round(error_max,2)}mm; \
+    min={round(error_min,2)}mm")
     ax9.set_xlabel("Diameters (mm)")
     ax9.set_ylabel("Confidence (%)")
     ax9.set_xlim((-0.5, 22))
