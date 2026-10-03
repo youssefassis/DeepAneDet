@@ -16,29 +16,29 @@ def get_CM_dict(pred_spheres, truths, iou_thr, confidence_thr, pat_name, verbose
         - verbosity flag (boolean).
         
     The function first removes the predictions with a confidence score lower
-    than the predefined threshold confidence_thr. Then, it loops over each 
-    prediction, calculates the IoU between predicted and GT spheres.
-    If the IoU score is greater than or equal to the IoU threshold, the 
-    function adds the detection to a list (ious) : 
-        - If there is only one ground truth sphere that matches the predicted
-        sphere (len(ious)=1), then it is a true positive (TP). 
-        - If there are no ground truth sphere that match the predicted sphere
-        (len(ious)=0), the function marks it as a false positive (FP).
-        - If a prediction covers multiple ground truth, returns and ERROR!.
-    The function then computes the false negatives (FN) by iterating over the
-    ground truth spheres that were not detected. 
+    than the predefined threshold confidence_thr. Then, from the most to the
+    least confident, it computes the IoU between each predicted sphere and
+    every GT sphere:
+        - If it overlaps (IoU >= iou_thr) GT spheres that are not detected yet,
+        it is a true positive (TP) of the most overlapping one.
+        - If it only overlaps GT spheres already detected by a more confident
+        prediction, it is a false positive (FP) duplicate.
+        - If it overlaps no GT sphere, it is a false positive (FP).
+    The GT spheres left undetected are the false negatives (FN).
     
     Finally, the function returns the detection table and the list of FNs. 
     The detection table is a list of dictionaries, where each dictionary 
     contains information about a detected aneurysm, such as its confidence 
     score, diameter, IoU score, TP or FP status, and the coordinates of its 
-    center and endpoints. The FNs list is a list of dictionaries, where each
-    dictionary contains information about a missed aneurysm, such as its 
-    diameter and the coordinates of its center.    
+    center (and those of the matched GT sphere). The FNs list is a list of
+    dictionaries, where each dictionary contains information about a missed
+    aneurysm, such as its diameter and the coordinates of its center.    
     '''
-    detection_table, detected_aneurysms_diameters = [], []    
+    detection_table = []
+    detected = np.zeros(truths.shape[0], dtype=bool)
     # Remove spheres with low confidence score than predefined confidence_thr
     pred_spheres = pred_spheres[(pred_spheres[:, -1] >= confidence_thr), :]
+    pred_spheres = pred_spheres[np.argsort(-pred_spheres[:, -1], kind='stable')] # most confident first
     if verbose: print(f"\n{pred_spheres.shape[0]} detections / {truths.shape[0]} GT aneurysms")
 
     # loop over detections spheres
@@ -47,17 +47,13 @@ def get_CM_dict(pred_spheres, truths, iou_thr, confidence_thr, pat_name, verbose
         confidence = detection[-1] * 100
         if verbose: print(f"\t- Detection {det_idx+1}: confidence={round(confidence, 3)}%; diameter={round(diameter, 3)}mm")
 
-        ious, iou_score = [], 0
-        # loop over ground truth CC
-        for j, truth in enumerate(truths):
-            diam_gt = truth[3] * 2
-            center = truth[:3].tolist()
-            iou_score = intersection_over_union(prediction = detection[:4], truth = truth[:4])
-            if iou_score >= iou_thr:
-                ious.append([iou_score, diam_gt, center, truth[4:7].tolist(), truth[7:10].tolist()])
-            if verbose: print(f"\t\t-> vs truth {j+1}: iou={round(iou_score * 100, 3)}%, gt_diam={round(diam_gt, 3)}mm")
+        ious = np.array([intersection_over_union(prediction = detection[:4], truth = truth[:4]) for truth in truths])
+        if verbose:
+            for j, (iou_score, truth) in enumerate(zip(ious, truths)):
+                print(f"\t\t-> vs truth {j+1}: iou={round(iou_score * 100, 3)}%, gt_diam={round(truth[3] * 2, 3)}mm")
 
-        if len(ious) == 0:
+        overlapping = ious >= iou_thr
+        if not overlapping.any():
             detection_table.append({'Confidence': confidence, 
                                     'Diameter': diameter, 
                                     'Center': detection[:3].tolist(), 
@@ -65,30 +61,28 @@ def get_CM_dict(pred_spheres, truths, iou_thr, confidence_thr, pat_name, verbose
                                     'TP': 0, 
                                     'FP': 1
                                    })
-        elif len(ious) == 1:
-            if len(detected_aneurysms_diameters) > 0 and (ious[0][1] in detected_aneurysms_diameters): # check if this detection is already detected                
-                print(f'\t\tAneurysm already detected by another prediction ({pat_name})')
-                TP, FP = 0, 1
-            else:
-                TP, FP = 1, 0
-                detected_aneurysms_diameters.append(ious[0][1])
-            detection_table.append({'Confidence': confidence, 
-                                    'Diameter': diameter, 
-                                    'Center': detection[:3].tolist(), 
-                                    'GT diameter': ious[0][1], 
-                                    'IoU': ious[0][0], 
-                                    'GT Center': ious[0][2], 
-                                    'TP': TP, 
-                                    'FP': FP
-                                   })
+            continue
+
+        candidates = overlapping & ~detected
+        if candidates.any():
+            match = np.argmax(np.where(candidates, ious, -1))
+            detected[match] = True
+            TP, FP = 1, 0
         else:
-            raise ValueError('Large Detection that covers multiple aneurysms')
+            match = np.argmax(ious)
+            print(f'\t\tAneurysm already detected by another prediction ({pat_name})')
+            TP, FP = 0, 1
+        detection_table.append({'Confidence': confidence, 
+                                'Diameter': diameter, 
+                                'Center': detection[:3].tolist(), 
+                                'GT diameter': truths[match][3] * 2, 
+                                'IoU': ious[match], 
+                                'GT Center': truths[match][:3].tolist(), 
+                                'TP': TP, 
+                                'FP': FP
+                               })
     # FNs
-    FNs = []
-    for gt in truths:
-        diameter = gt[3]*2
-        if diameter not in detected_aneurysms_diameters:
-            FNs.append({'Center': gt[:3].tolist(), 'Diameter': gt[3]*2})
+    FNs = [{'Center': gt[:3].tolist(), 'Diameter': gt[3]*2} for gt in truths[~detected]]
     return detection_table, FNs
 
 def get_detections(predictions_dir, patient_dirs, truth_file_name, iou_thr=0.1, confidence_thr=0.05, max_per_patient=None, verbose=False):
