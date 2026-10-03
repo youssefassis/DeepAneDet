@@ -19,38 +19,38 @@ To use our code, follow the following steps:
     git clone https://gitlab.inria.fr/yassis/DeepAneDet.git
     cd DeepAneDet
     ```
-2. Build the Docker image (PyTorch for NVIDIA GPUs by default, or `./buildDocker.sh cpu`):
+2. Build the Docker image (PyTorch for NVIDIA GPUs by default, or `scripts/build_docker.sh cpu`):
     ```
-    ./buildDocker.sh
+    scripts/build_docker.sh
     ```
 3. Run the container, as your user and with your home directory mounted at the same path:
     ```
-    ./runDocker.sh
+    scripts/run_docker.sh
     ```
 4. Open JupyterLab at http://localhost:5000, with the token shown by `docker logs deepanedet`.
 5. Outside Docker, install the project with [uv](https://docs.astral.sh/uv/): `uv sync --extra cu126` (NVIDIA GPU) or `uv sync --extra cpu`. Run the commands below from the repository root (inside Docker, without `uv run`).
 6. Prepare the data by generating the "noskull.nii.gz" and "points.csv" files of the patient directories (`path/to/Data_dir/sub-*/ses-*` for session folders):
     ```
-    uv run python -m deepanedet.scripts.remove_skull path/to/Data_dir/P*
-    uv run python -m deepanedet.scripts.extract_points path/to/Data_dir/P*
+    uv run python scripts/remove_skull.py path/to/Data_dir/P*
+    uv run python scripts/extract_points.py path/to/Data_dir/P*
     ```
     Negative patch centers are kept away from the aneurysms listed under "pts aneurysm" in each "config.json", or in the file given with `--truth-file` (e.g. `--truth-file aneurysms.csv`).
 
 ## Traning
-1. Generate a customized training sample (e.g. the Fold1 directory) from a split file; the other training settings are set in `deepanedet/scripts/prepare.py`:
+1. Generate a customized training sample (e.g. the Fold1 directory) from a split file; the other training settings are set in `scripts/prepare.py`:
     ```
-    uv run python -m deepanedet.scripts.prepare path/to/Data_dir path/to/Work_dir Reproducibility/fold1.json --name Fold1
+    uv run python scripts/prepare.py path/to/Data_dir path/to/Work_dir Reproducibility/fold1.json --name Fold1
     ```
 
 2. Based on the generated configuration file in "Train001/ndl_config.json", start the training and validation phase by running the following two commands:
     ```
-    uv run python -m deepanedet.scripts.train path/to/Train001
+    uv run python scripts/train.py path/to/Train001
     ```
 
 ## Inference
 * Use the script "predict.py" to perform inference by running:
     ```
-    uv run python -m deepanedet.scripts.predict path/to/Train001
+    uv run python scripts/predict.py path/to/Train001
     ```
 * The predictions of the validation and testing patients of the split file are generated in "path/to/Train001/Predictions/<epochs>_epochs/...". For each patient, the predictions are saved in a separate JSON file named after the patient folder ("P0001.json"), or after the subject and session for session folders ("sub-013/ses-20101220" gives "sub-013_ses-20101220.json"). Each prediction includes the center coordinates (x, y, z) in mm, the radius in mm, and a confidence score between 0 and 1.
 
@@ -58,7 +58,7 @@ To use our code, follow the following steps:
 ## Evaluation
 - Evaluate the model using the script "evaluate.py" by running:
     ```
-    uv run python -m deepanedet.scripts.evaluate path/to/Train001/Predictions/<epochs>_epochs/Validation_0.01/None_detections_per_patch
+    uv run python scripts/evaluate.py path/to/Train001/Predictions/<epochs>_epochs/Validation_0.01/None_detections_per_patch
     ```
 - The validation and testing patients of the split file are evaluated against their "truth file" (see "ndl_config.json"). Detections are matched from the most to the least confident, each to the not yet detected aneurysm it overlaps most (IoU >= 0.1); other detections are false positives.
 - After running the evaluation script, the results are generated as a CSV table of the detections and a PNG figure that summarizes the performance of the model on the test images, both in the predictions directory.
@@ -87,9 +87,9 @@ As illustrated in the figure below, to create these spheres, two points are used
 
 To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?". The code of the nnU-Net [3] and nnDetection [2] baselines is in "baselines" (see its README for the upstream versions and the changes made for the paper).
 
-To train or evaluate on these annotations, write them as the truth file ("aneurysms.csv", the "truth file" of "deepanedet/scripts/prepare.py") of each patient directory, laid out as `Data_dir/sub-XXX/ses-YYYYMMDD`:
+To train or evaluate on these annotations, write them as the truth file ("aneurysms.csv", the "truth file" of "scripts/prepare.py") of each patient directory, laid out as `Data_dir/sub-XXX/ses-YYYYMMDD`:
 ```
-uv run python -m deepanedet.scripts.convert_annotations Reproducibility/Annotations path/to/Data_dir
+uv run python scripts/convert_annotations.py Reproducibility/Annotations path/to/Data_dir
 ```
 Patients without an annotation file have no aneurysm.
 
