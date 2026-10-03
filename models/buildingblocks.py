@@ -161,8 +161,7 @@ class ExtResNetBlock(nn.Module):
         elif 'r' in order:
             self.non_linearity = nn.ReLU( inplace=True)
         else:
-            print("No activation function found")
-            sys.exit(0)
+            raise ValueError(f"Layer order '{order}' has no activation function ('l', 'm' or 'r')")
 
     def forward(self, x):
         # apply first convolution and save the output as a residual
