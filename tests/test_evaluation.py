@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from evaluation import get_CM_dict
 
@@ -87,3 +88,39 @@ def test_evaluate_script_writes_the_detection_table_and_figure(evaluation_fold, 
     table = pd.read_csv(predictions_dir / "detection_evaluation@0.1.csv")
     assert table["TP"].sum() == 2 and table["FP"].sum() == 3
     assert (predictions_dir / "Evaluation@0.1.png").is_file()
+
+
+@pytest.mark.parametrize("kept", ["true positives", "nothing"])
+def test_evaluate_script_without_false_positives(evaluation_fold, monkeypatch, kept):
+    import json
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import evaluate
+
+    _, predictions_dir = evaluation_fold
+    for prediction_file in predictions_dir.glob("*.json"):
+        detections = json.loads(prediction_file.read_text())
+        kept_detections = {k: d for k, d in detections.items() if d["confidence"] == 0.9} if kept == "true positives" else {}
+        prediction_file.write_text(json.dumps(kept_detections))
+    monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir)])
+
+    evaluate.main()
+
+    assert (predictions_dir / "Evaluation@0.1.png").is_file()
+
+
+def test_evaluate_script_without_aneurysm_reports_it(evaluation_fold, monkeypatch):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import evaluate
+
+    _, predictions_dir = evaluation_fold
+    for truth in (predictions_dir.parents[3] / "Data").glob("*/aneurysms.csv"):
+        truth.unlink()
+    monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir)])
+
+    with pytest.raises(SystemExit, match="No aneurysm"):
+        evaluate.main()
