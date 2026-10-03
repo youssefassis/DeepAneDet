@@ -11,15 +11,6 @@ The project is organized into two main directories: "Data_dir" and "Work_dir". T
 
 2. In the "Work_dir", there is a directory called "Train001" that contains the configuration of a customized training (called "ndl_config.json") and stores the checkpoint model called "last_checkpoint.pytorch". see an example in reproductibity/Work_dir/Train001.
 
-## Code
-The code is the `deepanedet` package:
-- `data`: reading patients, splits and points; patch sampling and augmentation
-- `volume`: patch extraction, point selection, skull stripping
-- `models`: the detection network
-- `training`: dataset, balanced batch sampler, losses, schedulers and trainer
-- `inference`: patch-wise prediction and detection evaluation
-- `scripts`: the commands below, run as `python -m deepanedet.scripts.<name>` from the repository root
-
 # Usage
 To use our code, follow the following steps:
 ## Preparation
