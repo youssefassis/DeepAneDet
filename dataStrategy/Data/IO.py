@@ -370,74 +370,11 @@ def countAnev(p):
     os.chdir('..')
     return len(aloc)/2
 
-def SizeAnev(p):
+def SizeAnev(p, truth_file):
     '''
-    This function calculates the size of aneurysms in a given directory path p.
-    1- Creates an empty list sizes to store the aneurysm sizes.
-    2- Changes the current working directory to the given path p.
-    3- Reads the config.json file in the current directory using json.load() and stores the content in variable c.
-    4- Checks if the pts aneurysm file exists, and if so, reads the points from the file using a function 
-    read_points_from_csv() (which is not defined in the code you provided).
-    5- Calculates the size of each aneurysm by computing the Euclidean distance between pairs of points in the list
-    points, and appends each size to the sizes list.
-    
-    Returns the sizes list.
+    Returns the diameters of the aneurysms of patient directory p, read as point pairs from its truth_file (none if missing)
     '''
-    sizes = []
-    os.chdir(p)
-    with open('config.json', 'r') as f:
-        c = json.load(f)
-    # read aneurysm locations
-    if c['pts aneurysm'] and os.path.isfile(c['pts aneurysm']):
-        points = read_points_from_csv(c['pts aneurysm'])
-        for i in range(0, points.shape[0], 2):
-            p1, p2 = points[i], points[i+1]
-            size = np.linalg.norm(p1 - p2, axis=0)
-            sizes.append(size)
-    return sizes
-
-
-def get_patient_dir_from_name(patient_name):
-    '''
-    This function takes a patient name as input and returns the path to the patient's directory. 
-    Here's a description of how the function works:
-    1- If the patient name contains "P0", it is assumed to be from the CHRU or ADAM dataset. 
-    The function first checks if a directory exists in the CHRU dataset with the patient name. 
-    If it does, it returns the path to that directory. Otherwise, it checks for the patient name
-    in various subdirectories of the ADAM dataset, including "Unique", "Basic", "Follow-up", and
-    "healthy_patients". If it finds the patient name in one of these subdirectories, it returns
-    the path to the corresponding directory.
-    2- If the patient name does not contain "P0", it is assumed to be from the CHUV Lausanne dataset.
-    The function constructs the path to the patient's directory by replacing the "sub" prefix with 
-    "sub-" and taking the first seven characters of the patient name. It checks if the directory 
-    exists in the "healthy_patients", "Sphere_annotation", or "Voxel_annotation" subdirectories of 
-    the CHUV Lausanne dataset, in that order. If it finds the patient directory in one of these 
-    subdirectories, it selects the first session directory in the patient directory (which is assumed
-    to exist) and returns its path.
-    '''
-    # CHRU or ADAM
-    if "P0" in patient_name:
-        patient = os.path.join("/path/to/Data/CHRU/", patient_name)
-        if os.path.isdir(patient): # CHRU
-            return patient
-        else: # ADAM
-            main_dir = "/path/to/Data/ADAM/"
-            if os.path.isdir(os.path.join(main_dir, "Unique", patient_name)): # unique folder
-                return os.path.join(main_dir, "Unique", patient_name)
-            elif os.path.isdir(os.path.join(main_dir, "Basic", patient_name)): # Basic folder
-                return os.path.join(main_dir, "Basic", patient_name)
-            elif os.path.isdir(os.path.join(main_dir, "Follow-up", patient_name)): # Follow-up folder
-                return os.path.join(main_dir, "healthy_patients", patient_name)
-            elif os.path.isdir(os.path.join(main_dir, "healthy_patients", patient_name)):
-                return os.path.join(main_dir, "healthy_patients", patient_name)
-    # CHUV Lausanne
-    else:
-        main_dir = "/path/to/Data/CHUV/"
-        patient = os.path.join(main_dir, "healthy_patients", patient_name.replace("sub", "sub-")[:7])
-        if not os.path.isdir(patient):
-            patient = os.path.join(main_dir, "Sphere_annotation", patient_name.replace("sub", "sub-")[:7])
-            if not os.path.isdir(patient):
-                patient = os.path.join(main_dir, "Voxel_annotation", patient_name.replace("sub", "sub-")[:7])
-        # acces to session dir
-        patient = [os.path.join(patient, f) for f in sorted(os.listdir(patient)) if "." not in f][0]
-        return patient
+    truth_path = os.path.join(p, truth_file)
+    if not os.path.isfile(truth_path):
+        return []
+    return list(2 * points_to_spheres(read_points_from_csv(truth_path))[:, 3])
