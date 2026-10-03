@@ -293,13 +293,12 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
     points from the vessel and parenchyma based on the specified method and exports the points as a 
     CSV file, which is then converted to an FCSV file.
     '''
-    os.chdir(patient)
     print('Load volume from disk: '+patient)
-    with open("config.json", 'r') as f:
+    with open(os.path.join(patient, "config.json"), 'r') as f:
         d = json.load(f)
-    vol, vox2met = read_nii_from_file(d['noskull volume'])
+    vol, vox2met = read_nii_from_file(os.path.join(patient, d['noskull volume']))
     print(f'Extracting points')
-    ane_file = d.get('pts aneurysm')
+    ane_file = os.path.join(patient, d['pts aneurysm']) if d.get('pts aneurysm') else None
     fPoints = read_points_from_csv(ane_file) if ane_file and os.path.isfile(ane_file) else None
     fp = points_to_spheres(fPoints)[:,:-1] # keep the centers, drop the radii
     q = None
@@ -331,38 +330,13 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
         points = pd.concat([ps, qs])
     else:
         points = ps
-    points.to_csv(outfile)
-    csv2fcsv(outfile)
+    points.to_csv(os.path.join(patient, outfile))
+    csv2fcsv(os.path.join(patient, outfile))
 
 def extractPoints(dataPath, r = 20, nbPoints=100, outfile="points.csv", randomPoints = False):
     patients = fetch_patient_dirs(dataPath)
     for patient in patients:
         extractPointsFromPatient(patient, r=r, nbPoints=nbPoints, outfile=outfile, randomPoints=randomPoints)
-
-def countAnev(p):
-    """
-    This function takes a patient directory path p (String) as input, and returns 
-    the number of aneurysms found in the patient directory. 
-    Here's a more detailed description of how the function works:
-    1- The function changes the current working directory to the patient directory p.
-    2- The function reads the config.json file in the patient directory and stores 
-    the content in the variable c.
-    3- The function reads the aneurysm locations from the file path specified in the 
-    c['pts aneurysm'] key. It assumes that the file is in CSV format and uses the 
-    read_points_from_csv() function to read the points from the file. The resulting 
-    array aloc contains the locations of the aneurysms.
-    4- The function changes the current working directory back to the parent directory.
-    5- Finally, the function returns the number of aneurysms by dividing the length of
-    aloc by 2. This is because each row in aloc represents the coordinates of two points
-    that define a line segment representing an aneurysm.
-    """
-    os.chdir(p)
-    with open('config.json', 'r') as f:
-        c = json.load(f)
-    # read aneurysm locations
-    aloc=read_points_from_csv(c['pts aneurysm'])
-    os.chdir('..')
-    return len(aloc)/2
 
 def SizeAnev(p, truth_file):
     '''
