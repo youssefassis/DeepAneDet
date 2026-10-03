@@ -93,7 +93,7 @@ def getDataloaders(train_db, valid_db, config, workers):
                                              num_workers = workers,
                                              pin_memory = True)
 
-        logger.info(f"Validation DataLoader : ({len(valid_patches)} patches; Balanced batch : {balancedbatch}; batch size = {config['validation_batch_size']}; shuffle = {shuffle_val}; workers = {workers})")
+        logger.info(f"Validation DataLoader : ({len(valid_patches)} patches; Balanced batch : {balancedbatch}; batch size = {config['validation_batch_size']}; shuffle = False; workers = {workers})")
     return {"train": train_generator, "valid": valid_generator}, {'train' : train_iterations, 'valid' : valid_iterations}
 
 class Dataset(torch.utils.data.Dataset):
