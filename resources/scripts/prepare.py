@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
-import os, json
+import argparse, os, json
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Creates a training directory <work_dir>/<name> with its ndl_config.json. "
+                                                 "The other training settings are set below in this file.")
+    parser.add_argument("data_dir", help="directory of the patients")
+    parser.add_argument("work_dir", help="directory of the trainings")
+    parser.add_argument("split_file", help="training, validation and testing patients (e.g. Reproducibility/fold1.json)")
+    parser.add_argument("--name", help="training directory name (default: the split file name, e.g. fold1)")
+    return parser.parse_args()
 
 def main():
+    args = parse_args()
     config = dict()
     
-    config['base_dir'] = '/path/to/Patients/Directory'
-    config['working_dir'] = '/path/to/Work/Directory'
-    config["split_file"] = "/path/to/fold1.json"
-    config["test_name"] = "Fold1"
+    config['base_dir'] = os.path.abspath(args.data_dir)
+    config['working_dir'] = os.path.abspath(args.work_dir)
+    config["split_file"] = os.path.abspath(args.split_file)
+    config["test_name"] = args.name or os.path.splitext(os.path.basename(args.split_file))[0]
     
     config["overwrite"] = False
     
