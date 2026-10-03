@@ -2,13 +2,13 @@ import numpy as np
 import os, random, json
 import scipy.spatial.transform.rotation as sstr
 
-import Volume.Patch as vp
-import Volume.Edition as ved
-import Data.IO as dio
+from deepanedet.volume import patch as vp
+from deepanedet.volume import edition as ved
+from deepanedet.data import io as dio
 
-from helpers import to_array
+from deepanedet.helpers import to_array
 
-from utils import get_logger, get_number_of_steps 
+from deepanedet.utils import get_logger, get_number_of_steps 
 
 logger = get_logger("Generators")
 

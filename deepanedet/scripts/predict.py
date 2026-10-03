@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 import os, sys, torch
-import Data.IO as dio
-from utils import get_logger, load_model, load_training_config
-from prediction import ndl_run_validation_cases
+from deepanedet.data import io as dio
+from deepanedet.utils import get_logger, load_model, load_training_config
+from deepanedet.inference.prediction import ndl_run_validation_cases
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit(f"Usage: {sys.argv[0]} path/to/Train001")
+        sys.exit(f"Usage: python -m {__spec__.name} path/to/Train001")
     config = load_training_config(sys.argv[1])
 
     # Load Model

@@ -1,11 +1,11 @@
 import sys
-from helpers import to_array
+from deepanedet.helpers import to_array
 
 import numpy as np
 import scipy.ndimage as sndi
 import scipy.optimize as sopt
-import Volume.Edition as ved
-import Data.IO as dio
+from deepanedet.volume import edition as ved
+from deepanedet.data import io as dio
 from nibabel.affines import apply_affine
 from skimage.filters import threshold_otsu
 from scipy.ndimage import binary_fill_holes

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from utils import load_training_config
+from deepanedet.utils import load_training_config
 
 
 @pytest.mark.parametrize("stored", [{}, {"scales": None}])

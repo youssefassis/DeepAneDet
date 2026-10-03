@@ -1,12 +1,12 @@
 import torch, random, sys
 import numpy as np
-from utils import get_logger
+from deepanedet.utils import get_logger
 
-from Data.Generators import generateTransforms, getPatches
-from Data.Augmentation import randomFlip
-from Volume.Patch import getPatchAndAneurysms
-from batchsampler import BalancedBatchSampler
-import Data.IO as dio
+from deepanedet.data.generators import generateTransforms, getPatches
+from deepanedet.data.augmentation import randomFlip
+from deepanedet.volume.patch import getPatchAndAneurysms
+from deepanedet.training.batch_sampler import BalancedBatchSampler
+from deepanedet.data import io as dio
 
 logger = get_logger("Dataset")
 
