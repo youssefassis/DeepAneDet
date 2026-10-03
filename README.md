@@ -35,16 +35,17 @@ To use our code, follow the following steps:
     ```
     export PYTHONPATH="$PWD/dataStrategy:$PWD/models:$PWD/resources:$PYTHONPATH"
     ```
-7. Prepare the data by generating the "noskull.nii.gz" (from each patient folder) and "points.csv" files for each patient in the dataset:
+7. Prepare the data by generating the "noskull.nii.gz" and "points.csv" files of the patient directories (`path/to/Data_dir/sub-*/ses-*` for session folders):
     ```
-    cd path/to/Data_dir/P0001 && python path/to/DeepAneDet/resources/scripts/removeSkull.py
-    python -c "import Data.IO as dio; dio.extractPoints('path/to/Data_dir')"
+    python resources/scripts/removeSkull.py path/to/Data_dir/P*
+    python resources/scripts/extractPoints.py path/to/Data_dir/P*
     ```
+    Negative patch centers are kept away from the aneurysms listed under "pts aneurysm" in each "config.json", or in the file given with `--truth-file` (e.g. `--truth-file aneurysms.csv`).
 
 ## Traning
-1. Set the paths at the top of `resources/scripts/prepare.py`, then generate a customized training sample (e.g. Train001 directory) using the command:
+1. Generate a customized training sample (e.g. the Fold1 directory) from a split file; the other training settings are set in `resources/scripts/prepare.py`:
     ```
-    python resources/scripts/prepare.py
+    python resources/scripts/prepare.py path/to/Data_dir path/to/Work_dir Reproducibility/fold1.json --name Fold1
     ```
 
 2. Based on the generated configuration file in "Train001/ndl_config.json", start the training and validation phase by running the following two commands:
