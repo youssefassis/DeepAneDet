@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-import prediction
+from deepanedet.inference import prediction
 
 
 class OneDetectionPerPatch(torch.nn.Module):

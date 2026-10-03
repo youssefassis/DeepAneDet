@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 import os, json, re, random, sys, cmath, statistics
 import matplotlib.pyplot as plt
-import evaluation
+from deepanedet.inference import evaluation
 import numpy as np
 import pandas as pd
-import Data.IO as dio
+from deepanedet.data import io as dio
 from sklearn.metrics import auc
 import scipy.stats as stats
 

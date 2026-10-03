@@ -35,4 +35,4 @@ jobs:
       - name: Build (CPU PyTorch)
         run: docker build -t deepanedet:cpu --build-arg TORCH=cpu .
       - name: Smoke test
-        run: docker run --rm deepanedet:cpu python -c "import torch, utils, Data.IO; print(torch.__version__)"
+        run: docker run --rm deepanedet:cpu python -c "import torch, deepanedet.utils, deepanedet.data.io; print(torch.__version__)"

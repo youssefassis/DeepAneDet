@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
 import argparse, os, json
 import numpy as np
 import nibabel as ni
-import Volume.Selection as vs
+from deepanedet.volume import selection as vs
 
 def remove_skull(patient_dir):
     config_file = os.path.join(patient_dir, 'config.json')

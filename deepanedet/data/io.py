@@ -5,8 +5,8 @@ import os, json, glob, random, time
 from tqdm import tqdm
 import sklearn
 
-from Volume.Selection import selectPoints, ConnectedComponents2Spheres
-from utils import get_logger
+from deepanedet.volume.selection import selectPoints, ConnectedComponents2Spheres
+from deepanedet.utils import get_logger
 from itertools import repeat
 
 from joblib import Parallel, delayed

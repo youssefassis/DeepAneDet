@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from evaluation import get_CM_dict
+from deepanedet.inference.evaluation import get_CM_dict
 
 
 def test_confusion_matrix_counts_tp_fp_and_fn():
@@ -61,7 +61,7 @@ def test_the_most_confident_detection_is_matched_first():
     assert [(d["Confidence"], d["TP"]) for d in detections] == [(90.0, 1), (30.0, 0)]
 
 def test_detections_are_read_for_each_patient_of_the_split(evaluation_fold):
-    from evaluation import get_detections
+    from deepanedet.inference.evaluation import get_detections
 
     _, predictions_dir = evaluation_fold
     patients = sorted(str(p) for p in (predictions_dir.parents[3] / "Data").iterdir())
@@ -78,7 +78,7 @@ def test_evaluate_script_writes_the_detection_table_and_figure(evaluation_fold, 
     matplotlib.use("Agg")
     import pandas as pd
 
-    import evaluate
+    from deepanedet.scripts import evaluate
 
     _, predictions_dir = evaluation_fold
     monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir) + "/"])
@@ -97,7 +97,7 @@ def test_evaluate_script_without_false_positives(evaluation_fold, monkeypatch, k
     import matplotlib
 
     matplotlib.use("Agg")
-    import evaluate
+    from deepanedet.scripts import evaluate
 
     _, predictions_dir = evaluation_fold
     for prediction_file in predictions_dir.glob("*.json"):
@@ -115,7 +115,7 @@ def test_evaluate_script_without_aneurysm_reports_it(evaluation_fold, monkeypatc
     import matplotlib
 
     matplotlib.use("Agg")
-    import evaluate
+    from deepanedet.scripts import evaluate
 
     _, predictions_dir = evaluation_fold
     for truth in (predictions_dir.parents[3] / "Data").glob("*/aneurysms.csv"):
