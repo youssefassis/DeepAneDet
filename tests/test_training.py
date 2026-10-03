@@ -91,3 +91,9 @@ def test_trained_model_loads_for_prediction(train, model_config):
     _, epoch = load_model(model_config, last=True)
 
     assert epoch == 1
+
+
+def test_training_without_scheduler_saves_a_checkpoint(train, tmp_path):
+    train(n_epochs=1, lr=None)
+
+    assert (tmp_path / "last_checkpoint.pytorch").is_file()
