@@ -91,14 +91,19 @@ def get_CM_dict(pred_spheres, truths, iou_thr, confidence_thr, pat_name, verbose
             FNs.append({'Center': gt[:3].tolist(), 'Diameter': gt[3]*2})
     return detection_table, FNs
 
-def get_detections(patients, iou_thr=0.1, confidence_thr=0.05, dir_name="Labels", max_per_patient=None, truth_file_name='F.csv', verbose=False):
-    detections, FNs_cases, FN_diams = [], [], []
-    for patient in patients:
-        pat_name = patient.split("/")[-1].split(".")[0]
+def get_detections(predictions_dir, patient_dirs, truth_file_name, iou_thr=0.1, confidence_thr=0.05, max_per_patient=None, verbose=False):
+    '''
+    Matches the predictions saved in predictions_dir (<patient name>.json, see Data.IO.patient_name) with the
+    ground truth aneurysms of each patient directory (truth_file_name, a CSV of point pairs; none if missing).
+    Returns the detections sorted by decreasing confidence, and the missed aneurysms (FNs).
+    '''
+    detections, FNs_cases = [], []
+    for patient_dir in patient_dirs:
+        pat_name = dio.patient_name(patient_dir)
         if verbose: print(f"{pat_name}", end = ", ")
         
         # Get Prediction Spheres
-        with open(os.path.join("/".join(patient.split("/")[:-1]), dir_name, f"{pat_name}.json"), "r") as f:
+        with open(os.path.join(predictions_dir, f"{pat_name}.json"), "r") as f:
             predictions = json.load(f)
         pred_spheres = np.empty((0, 5))
         for idx, key in enumerate(predictions):
@@ -109,7 +114,7 @@ def get_detections(patients, iou_thr=0.1, confidence_thr=0.05, dir_name="Labels"
         del predictions
         
         # Get Truth Spheres
-        truth_file = os.path.join(dio.get_patient_dir_from_name(pat_name), truth_file_name)        
+        truth_file = os.path.join(patient_dir, truth_file_name)
         truths = dio.points_to_spheres(dio.read_points_from_csv(truth_file)) if os.path.isfile(truth_file) else np.empty((0, 4))
         
         detection_table, FNs = get_CM_dict(pred_spheres, truths, iou_thr = iou_thr, confidence_thr = confidence_thr, verbose = verbose, pat_name = pat_name)
