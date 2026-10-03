@@ -131,21 +131,13 @@ class Trainer:
 
     
     def _save_checkpoint(self, is_best, last_score, epoch=None):
-        if self.mixed_precision.state_dict() is None:
-            state = {'epoch': self.num_epoch + 1,
-                     'model_state_dict': self.model.state_dict(),
-                     'last_eval_score': last_score,
-                     'optimizer_state_dict': self.optimizer.state_dict(),
-                     'scheduler_state_dict': self.scheduler.state_dict(),
-                     'num_epoch': self.num_epoch }
-        else:
-            state = {'epoch': self.num_epoch + 1,
-                     'model_state_dict': self.model.state_dict(),
-                     'last_eval_score': last_score,
-                     'optimizer_state_dict': self.optimizer.state_dict(),
-                     'scheduler_state_dict': self.scheduler.state_dict(),
-                     'num_epoch': self.num_epoch,
-                     'mixed_precision': self.mixed_precision.state_dict() }
+        state = {'epoch': self.num_epoch + 1,
+                 'model_state_dict': self.model.state_dict(),
+                 'last_eval_score': last_score,
+                 'optimizer_state_dict': self.optimizer.state_dict(),
+                 'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler is not None else None,
+                 'num_epoch': self.num_epoch,
+                 'mixed_precision': self.mixed_precision.state_dict() }
         return save_checkpoint(state, 
                                is_best=is_best, 
                                checkpoint_dir=self.checkpoint_dir,
