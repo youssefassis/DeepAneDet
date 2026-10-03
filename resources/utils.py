@@ -158,7 +158,7 @@ def create_optimizer(model, config):
     assert optim in ["Adam", "SGD"]
     
     weight_decay = config["weight_decay"]
-    learning_rate = 1e-8 if config["lr"]== "WarmupPoly" else  config["initial_learning_rate"] 
+    learning_rate = 1e-8 if str(config["lr"]).startswith("Warmup") else config["initial_learning_rate"] # warmup schedulers raise it
 
     if optim == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay, amsgrad=True)
