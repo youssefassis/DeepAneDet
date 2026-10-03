@@ -1,8 +1,7 @@
 import numpy as np
-import os, random, json
+import os, json
 import scipy.spatial.transform.rotation as sstr
 
-from deepanedet.volume import patch as vp
 from deepanedet.volume import edition as ved
 from deepanedet.data import io as dio
 
@@ -85,27 +84,6 @@ def generateTransforms(trans=None, scal=None, rot=None, center=None, disp=None):
         dz[1:-1,1:-1,1:-1]=idz
         disp = (dx, dy, dz)
     return affine, disp
-
-def splitPatList(pat_list, training_pct=0.7, validation_pct=0.2, testing_pct=0.1):
-    '''
-    Split a list of patient directories into training, validation, and testing subsets according to given percentages.
-    Parameters:
-    pat_list (list of str): List of patient directory paths.
-    training_pct (float): Percentage of patients to use for training (default 0.7).
-    validation_pct (float): Percentage of patients to use for validation (default 0.2).
-    testing_pct (float): Percentage of patients to use for testing (default 0.1).
-    Returns:
-    Tuple of three lists: training, validation, and testing patient directory paths.
-    This function first computes the number of patients for each subset based on the input percentages,
-    and then randomly shuffles the input list and splits it accordingly. The sum of the input percentages
-    is normalized to 1 if necessary. The function returns three lists of patient directory paths for 
-    training, validation, and testing, respectively.
-    '''
-    train_nb=round(len(pat_list) * training_pct/(training_pct+validation_pct+testing_pct))
-    valid_nb=round((len(pat_list)-train_nb) * validation_pct/(validation_pct+testing_pct))
-    random.shuffle(pat_list)
-    return pat_list[:train_nb],pat_list[train_nb:train_nb+valid_nb],pat_list[train_nb+valid_nb:]
-
 
 def generate_masks_nii(main_dir, pts_file="F.csv"):
     '''

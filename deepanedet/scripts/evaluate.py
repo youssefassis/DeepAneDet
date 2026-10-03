@@ -1,11 +1,10 @@
-import os, json, re, random, sys, cmath, statistics
+import os, json, re, sys
 import matplotlib.pyplot as plt
 from deepanedet.inference import evaluation
 import numpy as np
 import pandas as pd
 from deepanedet.data import io as dio
 from sklearn.metrics import auc
-import scipy.stats as stats
 
 def summarize(values):
     '''
@@ -94,7 +93,6 @@ def main():
     # Confusion matrix
     plt.figure()
     fig, ((ax, ax1, ax2, ax3, ax4, ax5, ax6), (ax7, ax9, ax10, ax11, ax12, ax13, ax8,)) = plt.subplots(nrows=2, ncols=7, figsize=(45,10))
-    #fig.subplots_adjust(top=0.82)
     fig.tight_layout(pad=6.0)
     fig.suptitle (f"Evaluation at {iou_threshold} IoU ({epoch} epochs)", fontsize=14)
 
