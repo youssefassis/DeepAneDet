@@ -3,7 +3,7 @@ import sklearn.neighbors as skn
 import scipy.ndimage as sndi
 import skimage.morphology as skim
 import skimage.measure as skme
-from scipy.ndimage.measurements import label
+from scipy.ndimage import label
 from scipy.spatial import ConvexHull
 from scipy.spatial.distance import cdist
 
