@@ -325,7 +325,7 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
     if q is not None:
         qs = pd.DataFrame(q, columns=list('xyz'))
         qs['type']=pd.Categorical(['Parenchyma']*len(q))
-        points=ps.append(qs)
+        points = pd.concat([ps, qs])
     else:
         points = ps
     points.to_csv(outfile)
