@@ -75,7 +75,7 @@ To use our code, follow the following steps:
 
 ## Tests
 ```
-pip install -r requirements.txt pytest ruff
+pip install -r requirements-dev.txt
 pytest
 ruff check .
 ```
