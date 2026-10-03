@@ -1,6 +1,6 @@
 import pytest
 
-from buildingblocks import ExtResNetBlock
+from deepanedet.models.building_blocks import ExtResNetBlock
 
 
 def test_resnet_block_without_activation_raises():

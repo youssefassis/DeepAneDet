@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 import sys, torch
 
-from utils import get_optimizer_scheduler, get_model, load_training_config
-from Data.IO import add_points_to_patient_data, readSplit, read_patient_data_base
-from losses import get_loss_criterion
+from deepanedet.utils import get_optimizer_scheduler, get_model, load_training_config
+from deepanedet.data.io import add_points_to_patient_data, readSplit, read_patient_data_base
+from deepanedet.training.losses import get_loss_criterion
 
-from trainer import create_trainer
-from dataset import getDataloaders
+from deepanedet.training.trainer import create_trainer
+from deepanedet.training.dataset import getDataloaders
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit(f"Usage: {sys.argv[0]} path/to/Train001")
+        sys.exit(f"Usage: python -m {__spec__.name} path/to/Train001")
     config = load_training_config(sys.argv[1])
     
     # Multiprocessing data loading

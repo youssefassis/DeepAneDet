@@ -1,9 +1,9 @@
-# Test and lint settings for the current layout (modules are imported from the three source folders).
+# Test and lint settings. The code is the deepanedet package, imported from the repository root.
 # Run with: pip install -r requirements-dev.txt && pytest && ruff check .
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["dataStrategy", "models", "resources", "resources/scripts"]
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 120

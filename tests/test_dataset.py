@@ -1,4 +1,4 @@
-from dataset import getDataloaders
+from deepanedet.training.dataset import getDataloaders
 
 
 def test_dataloaders_include_validation(patient_db, training_config):
