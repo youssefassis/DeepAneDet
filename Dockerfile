@@ -20,7 +20,7 @@ COPY jupyter_server_config.json /etc/jupyter/
 COPY . .
 RUN uv sync --locked --no-dev --extra ${TORCH} --extra jupyter && rm -rf /root/.cache/uv
 
-# Writable home for any user id (runDocker.sh runs as the host user)
+# Writable home for any user id (scripts/run_docker.sh runs as the host user)
 RUN mkdir -p ${HOME} && chmod 777 ${HOME}
 
 EXPOSE 8888
