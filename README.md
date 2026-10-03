@@ -78,7 +78,7 @@ As illustrated in the figure below, to create these spheres, two points are used
   alt="Our adopted annotation"
   title=" Fast aneurysm annotation: 2 points (F1, F2) approximate the aneurysm with a sphere (red)">
 
-To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?".
+To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?". The code of the nnU-Net [3] and nnDetection [2] baselines is in "baselines" (see its README for the upstream versions and the changes made for the paper).
 
 # References
 [1] Xiangde et al., SCPM-Net: An anchor-free 3D lung nodule detection network using sphere representation and center points matching. Medical image analysis, 75 pp. 102287. Elsevier (2022)
