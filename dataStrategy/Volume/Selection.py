@@ -1,7 +1,6 @@
 import numpy as np
 import sklearn.neighbors as skn
 import scipy.ndimage as sndi
-import skimage.morphology as skim
 import skimage.measure as skme
 from scipy.ndimage import label
 from scipy.spatial import ConvexHull
@@ -129,7 +128,7 @@ def removeSkullMask(vol,percent=80):
     # erode this mask to remove the skull
     selem=getBall(2)
     for _ in range(15):
-        mask=skim.binary_erosion(mask,footprint=selem).astype(np.uint8)
+        mask=sndi.binary_erosion(mask,structure=selem,border_value=True).astype(np.uint8)
     # return this mask
     return mask
 
