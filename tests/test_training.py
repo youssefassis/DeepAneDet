@@ -1,9 +1,9 @@
 import pytest
 
-from dataset import getDataloaders
-from losses import get_loss_criterion
-from trainer import create_trainer
-from utils import get_model, get_optimizer_scheduler
+from deepanedet.training.dataset import getDataloaders
+from deepanedet.training.losses import get_loss_criterion
+from deepanedet.training.trainer import create_trainer
+from deepanedet.utils import get_model, get_optimizer_scheduler
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ def test_checkpoint_loads_with_weights_only(train, tmp_path):
 
 
 def test_trained_model_loads_for_prediction(train, model_config):
-    from utils import load_model
+    from deepanedet.utils import load_model
 
     train(n_epochs=1)
 

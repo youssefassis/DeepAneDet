@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from torch import nn as nn
-from utils import get_logger
+from deepanedet.utils import get_logger
 
 logger = get_logger("Loss function")
 
