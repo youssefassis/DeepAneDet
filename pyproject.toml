@@ -1,5 +1,5 @@
 # Test and lint settings for the current layout (modules are imported from the three source folders).
-# Run with: pip install -r requirements.txt pytest ruff && pytest && ruff check .
+# Run with: pip install -r requirements-dev.txt && pytest && ruff check .
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -7,7 +7,7 @@ pythonpath = ["dataStrategy", "models", "resources", "resources/scripts"]
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["resources/Baselines"]
+extend-exclude = ["baselines"]
 
 [tool.ruff.lint]
 # syntax errors and undefined names
