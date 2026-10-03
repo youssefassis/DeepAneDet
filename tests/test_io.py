@@ -47,3 +47,15 @@ def test_extract_points_writes_vessel_and_parenchyma_points(patient_dir):
     points = pd.read_csv(patient_dir / "points.csv")
     assert set(points["type"]) == {"Vessel", "Parenchyma"}
     assert (patient_dir / "points.fcsv").is_file()
+
+
+def test_extract_points_for_a_patient_without_aneurysm(patient_dir):
+    (patient_dir / "aneurysms.csv").unlink()
+
+    dio.extractPointsFromPatient(str(patient_dir), r=5, nbPoints=5)
+
+    assert set(pd.read_csv(patient_dir / "points.csv")["type"]) == {"Vessel", "Parenchyma"}
+
+
+def test_points_to_spheres_without_points_has_sphere_columns():
+    assert dio.points_to_spheres(None).shape == (0, 4)
