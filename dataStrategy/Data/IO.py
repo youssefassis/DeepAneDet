@@ -72,21 +72,16 @@ def save_nii_to_file(fname, vol, vox2met):
     
 def read_points_from_csv(fname, nb = None):
     '''
-    returns a list of points, read from a csv file. Coordinates are stored in columns named 'x', 'y' and 'z'
+    returns a Nx3 array of points, read from a csv file. Coordinates are stored in columns named 'x', 'y' and 'z'.
+    If nb is set and the file has a 'type' column (as points.csv), at most nb random 'Vessel' and nb random
+    'Parenchyma' points are returned.
     '''
-    try:
-        try:
-            d = pd.read_csv(fname, usecols = ['x','y','z', 'type'])
-            if nb is not None:
-                vessel = sklearn.utils.shuffle(d[d["type"]=='Vessel'])[:nb]
-                parenchyma = sklearn.utils.shuffle(d[d["type"]=='Parenchyma'])[:nb]
-                d = pd.concat([vessel, parenchyma])
-            return d.drop(columns=['type']).to_numpy()
-        except:
-            d = pd.read_csv(fname, usecols = ['x','y','z'])
-        return d.to_numpy()
-    except:
-        return None
+    d = pd.read_csv(fname)
+    if nb is not None and 'type' in d:
+        vessel = sklearn.utils.shuffle(d[d["type"]=='Vessel'])[:nb]
+        parenchyma = sklearn.utils.shuffle(d[d["type"]=='Parenchyma'])[:nb]
+        d = pd.concat([vessel, parenchyma])
+    return d[['x','y','z']].to_numpy()
 
 def points_to_spheres(p):
     '''
@@ -220,11 +215,10 @@ def saveSplit(cfg, train_list, valid_list, test_list):
     'validation list' and 'testing list'
     If the file already exists, it is updated, eventually with new keys as above, else it is created with these three keys.
     '''
-    try:
+    d = {}
+    if os.path.isfile(cfg):
         with open(cfg,'r') as f:
             d = json.load(f)
-    except:
-        d = {}
     d['training list'] = train_list
     d['validation list'] = valid_list
     d['testing list'] = test_list

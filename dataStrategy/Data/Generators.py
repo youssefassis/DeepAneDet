@@ -126,7 +126,8 @@ def generate_masks_nii(main_dir, pts_file="F.csv"):
             volume_name = os.path.join(patient, cfg["init volume"])
 
         vol, v2m = dio.read_nii_from_file(volume_name)
-        spheres = dio.points_to_spheres(dio.read_points_from_csv(os.path.join(patient, pts_file)))
+        truth_file = os.path.join(patient, pts_file)
+        spheres = dio.points_to_spheres(dio.read_points_from_csv(truth_file) if os.path.isfile(truth_file) else None)
         truth = ved.getTruth(vol=vol, vox2met=v2m, spheres=spheres)
         dio.save_nii_to_file(os.path.join(patient, "mask_spheres.nii.gz"), truth, v2m)
 
