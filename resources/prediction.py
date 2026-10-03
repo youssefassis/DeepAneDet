@@ -255,7 +255,7 @@ def ndl_run_validation_case(pat_dict, device, size, dim, output_dir, patient_nam
             save_spheres(spheres2, os.path.join(os.path.join(output_dir, f"F{axis}"),  patient_name+'.json'))
             # keep only intersected spheres            
             spheres1 = keep_only_intersected_spheres(spheres1, spheres2, min_iou_threshold=0.1)
-        save_spheres(spheres1, os.path.join(output_dir, patient_name+'.json'))
+    save_spheres(spheres1, os.path.join(output_dir, patient_name+'.json'))
 
 def ndl_run_validation_cases(pat_list, device, model, patch_size, patch_dim, input_volume, normalization, output_dir='.', margin=0, batch_size=1, mirror_axes=[0], do_tta=False, scales=[12], anchors=None, iou_threshold=0.01, detections_per_patch=None ):
     '''

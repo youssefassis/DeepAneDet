@@ -24,3 +24,16 @@ def test_patch_wise_prediction_does_not_depend_on_batch_size(batch_size):
 
     # cell centers (offset sigmoid(0) = 0.5 of a 4-voxel cell) in each patch
     assert sorted(s[:3] for s in spheres) == [[2.0, 2.0, 2.0], [10.0, 2.0, 2.0]]
+
+
+@pytest.mark.parametrize("tta", [False, True])
+def test_validation_case_writes_the_final_predictions(tmp_path, tta):
+    patient = {"data": np.zeros((16, 8, 8), dtype=np.float32), "affine": np.eye(4)}
+
+    prediction.ndl_run_validation_case(
+        patient, "cpu", size=[8, 8, 8], dim=[8, 8, 8], output_dir=str(tmp_path), patient_name="P0001",
+        model=OneDetectionPerPatch(), margin=0, batch_size=1, mirror_axes=[0], iou_threshold=0.01,
+        detections_per_patch=None, patient_wise_tta=tta,
+    )
+
+    assert (tmp_path / "P0001.json").is_file()
