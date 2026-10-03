@@ -1,5 +1,5 @@
 import numpy as np
-import random, json
+import os, random, json
 import scipy.spatial.transform.rotation as sstr
 
 import Volume.Patch as vp

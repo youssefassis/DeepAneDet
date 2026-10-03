@@ -70,12 +70,13 @@ def main():
     
     config['test_dir'] = os.path.join(config['working_dir'], config['test_name'])
     config["model_file"] = os.path.join(config['test_dir'], "last_checkpoint.pytorch")
-    
-    # Create training dir if not exists
-    if not os.path.exists(config['test_dir']):
-        os.mkdir(config['test_dir'], exist_ok=True)
-    
-    # Saving configuration as json file in working directory
+    save_config(config)
+
+def save_config(config):
+    '''
+    Saves the configuration as ndl_config.json in the training directory, creating it if needed
+    '''
+    os.makedirs(config['test_dir'], exist_ok=True)
     with open(os.path.join(config['test_dir'], 'ndl_config.json'), 'w') as f:
         json.dump(config, f, indent = 2)
 

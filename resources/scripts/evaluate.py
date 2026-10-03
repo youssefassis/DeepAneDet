@@ -14,7 +14,7 @@ def main():
     if not os.path.isdir(predictions_dir):
         print(f'No directory found to load predictions')
         exit()
-s
+
     iou_threshold = 0.1
     confidence_threshold = 0.01
 
