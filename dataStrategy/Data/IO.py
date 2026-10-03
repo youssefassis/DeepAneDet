@@ -87,7 +87,7 @@ def points_to_spheres(p):
              and the 4th value is its half-length (i.e. radius of the sphere)
     '''
     if p is None or len(p) == 0:
-        return np.empty((0,3))
+        return np.empty((0,4))
 
     if p.shape[1] != 3:
         raise ValueError('Input array must be a list of 3D points')
@@ -137,13 +137,13 @@ def read_patient_data(vol_file, ane_file, normalize=None):
 
     # should we use scikit.learn.normalize (or transform)?
     if normalize == 'Linear':
-        d = normalize(d)
+        d = rescale(d)
     elif normalize == 'Normal':
         d = standardize(d)
 
     return {'data':d, 'affine':affine, 'aneurysms':s}
 
-def normalize(vol):
+def rescale(vol):
     '''
     Normalizes the data between [0, 1] of the input volume
     '''
@@ -297,8 +297,9 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
         d = json.load(f)
     vol, vox2met = read_nii_from_file(d['noskull volume'])
     print(f'Extracting points')
-    fPoints = read_points_from_csv(d['pts aneurysm'])
-    fp = points_to_spheres(fPoints)[:,:-1] # drop centers
+    ane_file = d.get('pts aneurysm')
+    fPoints = read_points_from_csv(ane_file) if ane_file and os.path.isfile(ane_file) else None
+    fp = points_to_spheres(fPoints)[:,:-1] # keep the centers, drop the radii
     q = None
     if randomPoints:
         minThreshold, maxThreshold = np.percentile(vol[vol>0], 0), np.percentile(vol[vol>0], 100)
@@ -325,7 +326,7 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
     if q is not None:
         qs = pd.DataFrame(q, columns=list('xyz'))
         qs['type']=pd.Categorical(['Parenchyma']*len(q))
-        points=ps.append(qs)
+        points = pd.concat([ps, qs])
     else:
         points = ps
     points.to_csv(outfile)
