@@ -92,6 +92,12 @@ As illustrated in the figure below, to create these spheres, two points are used
 
 To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?".
 
+To train or evaluate on these annotations, write them as the truth file ("aneurysms.csv", the "truth file" of "prepare.py") of each patient directory, laid out as `Data_dir/sub-XXX/ses-YYYYMMDD`:
+```
+python resources/scripts/convertAnnotations.py Reproducibility/Annotations path/to/Data_dir
+```
+Patients without an annotation file have no aneurysm.
+
 # References
 [1] Xiangde et al., SCPM-Net: An anchor-free 3D lung nodule detection network using sphere representation and center points matching. Medical image analysis, 75 pp. 102287. Elsevier (2022)
 
