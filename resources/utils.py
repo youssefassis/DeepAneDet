@@ -1,7 +1,18 @@
-import logging, os, sys, shutil
+import json, logging, math, os, sys, shutil
 import numpy as np
 import torch
 import copy
+
+def load_training_config(train_dir):
+    '''
+    Reads the ndl_config.json of a training directory (see scripts/prepare.py). Missing scales default to one
+    detection grid cell per 8 patch voxels.
+    '''
+    with open(os.path.join(train_dir, 'ndl_config.json'), 'r') as f:
+        config = json.load(f)
+    if config.get('scales') is None:
+        config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
+    return config
 
 def get_model(config, default_init="He", device='cpu'):
     logger = get_logger('Model')

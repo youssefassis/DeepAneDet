@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-import os, sys, json, torch, math
+import sys, torch
 
-from utils import get_optimizer_scheduler, get_model
+from utils import get_optimizer_scheduler, get_model, load_training_config
 from Data.IO import add_points_to_patient_data, readSplit, read_patient_data_base
 from losses import get_loss_criterion
 
@@ -9,14 +9,9 @@ from trainer import create_trainer
 from dataset import getDataloaders
 
 def main():
-    try:
-        with open(os.path.join(sys.argv[1], 'ndl_config.json'),'r') as f:
-            config = json.load(f)
-        if not 'scales' in config or config['scales'] is None:
-            config['scales'] = [math.ceil(x/8) for x in config['patch_shape']]
-    except:
-        print(f'No such config file for training')
-        exit()    
+    if len(sys.argv) != 2:
+        sys.exit(f"Usage: {sys.argv[0]} path/to/Train001")
+    config = load_training_config(sys.argv[1])
     
     # Multiprocessing data loading
     workers = 12
