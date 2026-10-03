@@ -19,23 +19,20 @@ To use our code, follow the following steps:
     git clone https://gitlab.inria.fr/yassis/DeepAneDet.git
     cd DeepAneDet
     ```
-2. Edit the "Docker" file by specifying the user_name, group_name, PYTHONPATH, and the configuration of Jupyterlab.
-3. Create the Docker container by running the following commands:
+2. Build the Docker image (PyTorch for NVIDIA GPUs by default, or `./buildDocker.sh cpu`):
     ```
-    chmod +x buildDocker.sh
-    ./buildDocker
+    ./buildDocker.sh
     ```
-4. Run the Docker container by running the following two commands:
+3. Run the container, as your user and with your home directory mounted at the same path:
     ```
-    chmod +x runDocker.sh
-    ./runDocker
+    ./runDocker.sh
     ```
-5. Access to the Jupyterlab from your browser.
-6. The scripts import the modules of `dataStrategy`, `models` and `resources`: outside Docker, add them to the `PYTHONPATH`:
+4. Open JupyterLab at http://localhost:5000, with the token shown by `docker logs deepanedet`.
+5. Docker sets the `PYTHONPATH` the scripts need. Outside Docker, install the requirements (`pip install -r requirements.txt`) and add the modules of `dataStrategy`, `models` and `resources` to the `PYTHONPATH`:
     ```
     export PYTHONPATH="$PWD/dataStrategy:$PWD/models:$PWD/resources:$PYTHONPATH"
     ```
-7. Prepare the data by generating the "noskull.nii.gz" (from each patient folder) and "points.csv" files for each patient in the dataset:
+6. Prepare the data by generating the "noskull.nii.gz" (from each patient folder) and "points.csv" files for each patient in the dataset:
     ```
     cd path/to/Data_dir/P0001 && python path/to/DeepAneDet/resources/scripts/removeSkull.py
     python -c "import Data.IO as dio; dio.extractPoints('path/to/Data_dir')"
@@ -78,7 +75,7 @@ As illustrated in the figure below, to create these spheres, two points are used
   alt="Our adopted annotation"
   title=" Fast aneurysm annotation: 2 points (F1, F2) approximate the aneurysm with a sphere (red)">
 
-To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?".
+To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?". The code of the nnU-Net [3] and nnDetection [2] baselines is in "baselines" (see its README for the upstream versions and the changes made for the paper).
 
 To train or evaluate on these annotations, write them as the truth file ("aneurysms.csv", the "truth file" of "prepare.py") of each patient directory, laid out as `Data_dir/sub-XXX/ses-YYYYMMDD`:
 ```
