@@ -5,7 +5,7 @@ import copy
 
 def load_training_config(train_dir):
     '''
-    Reads the ndl_config.json of a training directory (see scripts/prepare.py). Missing scales default to one
+    Reads the ndl_config.json of a training directory (see deepanedet.scripts.prepare). Missing scales default to one
     detection grid cell per 8 patch voxels.
     '''
     with open(os.path.join(train_dir, 'ndl_config.json'), 'r') as f:
@@ -40,8 +40,8 @@ def get_model(config, default_init="He", device='cpu'):
 def select_model(config, logger):
     # Instantiate the model
     if config["model"] == "ASSIS":
-        from assis_model import AssisModel
-        from buildingblocks import DoubleConv, ExtResNetBlock
+        from deepanedet.models.assis_model import AssisModel
+        from deepanedet.models.building_blocks import DoubleConv, ExtResNetBlock
         
         pool_type = config['pool_type'] if 'pool_type' in config else 'max'
         basic_module = ExtResNetBlock if 'basic_module' in config and config['basic_module']=="ExtResNetBlock" else DoubleConv
@@ -193,7 +193,7 @@ def create_lr_scheduler(optimizer, config, warmup_steps=0):
         logger.info("No scheduler specified")
 
     elif config["lr"] == "Warmup":
-        from schedulers import WarmupLRScheduler
+        from deepanedet.training.schedulers import WarmupLRScheduler
         scheduler = WarmupLRScheduler(optimizer = optimizer,
                                       min_lr = config['min_lr'],
                                       max_lr = config['initial_learning_rate'],
@@ -201,7 +201,7 @@ def create_lr_scheduler(optimizer, config, warmup_steps=0):
         logger.info(f"WarmupLR Scheduler: warmup_steps = {warmup_steps}")
 
     elif config["lr"] == "ReduceLROnPlateau":
-        from schedulers import ReduceLROnPlateau
+        from deepanedet.training.schedulers import ReduceLROnPlateau
         factor, patience, wloss = config["factor"], config["patience"], True#config["wloss"]
         scheduler = ReduceLROnPlateau(optimizer = optimizer,
                                       factor = factor,
@@ -211,7 +211,7 @@ def create_lr_scheduler(optimizer, config, warmup_steps=0):
         logger.info(f"ReduceLROnPlateau Scheduler: patience={patience}, factor={factor}, wloss={wloss}")
 
     elif config["lr"] == "Poly":
-        from schedulers import Poly
+        from deepanedet.training.schedulers import Poly
         start_epoch = config["start_epoch"] 
         scheduler = Poly(optimizer = optimizer,
                          start_epoch = start_epoch,
@@ -221,7 +221,7 @@ def create_lr_scheduler(optimizer, config, warmup_steps=0):
         logger.info(f"Polynomial Scheduler: start_epoch={start_epoch}, max_epochs={config['n_epochs']}")
 
     elif config["lr"] == "WarmupPlateau":
-        from schedulers import WarmupScheduler, ReduceLROnPlateau
+        from deepanedet.training.schedulers import WarmupScheduler, ReduceLROnPlateau
         start_epoch = 10
         scheduler = WarmupScheduler(optimizer = optimizer, 
                                         min_lr = 1e-8,
@@ -234,7 +234,7 @@ def create_lr_scheduler(optimizer, config, warmup_steps=0):
                                                                                    start_epoch = start_epoch))
         logger.info(f"WarmupPlateau scheduler : lr={config['initial_learning_rate']}, patience={config['patience']}, factor={config['factor']}, start_epoch={start_epoch}")
     elif config["lr"] == "WarmupPoly":
-        from schedulers import WarmupScheduler, Poly
+        from deepanedet.training.schedulers import WarmupScheduler, Poly
         start_epoch = config["start_epoch"] 
         stop_epoch = config["stop_epoch"] 
         scheduler = WarmupScheduler(optimizer = optimizer, 

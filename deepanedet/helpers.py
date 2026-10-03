@@ -1,7 +1,7 @@
 import os, json, sys, torch, math
 import numpy as np    
 from nibabel.affines import apply_affine
-import Data.IO as dio
+from deepanedet.data import io as dio
 
 
 def to_tuple( value, length: int = 1):

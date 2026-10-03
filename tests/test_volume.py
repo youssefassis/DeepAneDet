@@ -1,6 +1,6 @@
 import numpy as np
 
-import Volume.Selection as vs
+from deepanedet.volume import selection as vs
 
 
 def test_selected_points_avoid_every_forbidden_point():
