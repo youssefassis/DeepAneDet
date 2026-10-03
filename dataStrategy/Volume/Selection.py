@@ -79,7 +79,7 @@ def selectPoints(vol,vox2met,thresLow,r,thresHigh=None,fPoints=None,
     removed=np.zeros(len(v),dtype=np.bool)
     tree=skn.KDTree(p)
 
-    if not fPoints is None:
+    if fPoints is not None and len(fPoints) > 0:
         if len(fPoints.shape) == 1:
             fPoints = fPoints[np.newaxis,:]
         i=tree.query_radius(fPoints,r)[0]
