@@ -1,13 +1,11 @@
 import numpy as np
 import nibabel as ni
 import pandas as pd
-import os, json, glob, random, time
-from tqdm import tqdm
+import os, json, glob, time
 import sklearn
 
-from deepanedet.volume.selection import selectPoints, ConnectedComponents2Spheres
+from deepanedet.volume.selection import selectPoints
 from deepanedet.utils import get_logger
-from itertools import repeat
 
 from joblib import Parallel, delayed
 
@@ -101,22 +99,6 @@ def points_to_spheres(p):
     a = p[::2] - p[1::2]
     r = np.sqrt(np.einsum('ij,ij->i', a, a))/2
     return np.hstack((c,r.reshape((-1, 1))))
-
-def points_to_spheres_regression(p):
-    '''
-    p: list of 3D points as a Nx3 array, where N is even, so that every two points are considered as segment
-    returns: a list of N/2 x 4 values: the first 3 values are the center of each segment (i.e. center of the sphere),
-             and the 4th value is its half-length (i.e. radius of the sphere)
-    '''
-    if p.shape[1] != 3:
-        raise ValueError('Input array must be a list of 3D points')
-    if p.shape[0]%2 != 0:
-        raise ValueError('Input array must contain an even number of points')
-
-    c = 0.5 * (p[::2] + p[1::2])
-    a = p[::2] - p[1::2]
-    r = np.sqrt(np.einsum('ij,ij->i', a, a)) / 2
-    return np.hstack((c, r.reshape((-1, 1)), p[::2], p[1::2]))
 
 def read_patient_data(vol_file, ane_file, normalize=None):
     '''
@@ -250,38 +232,6 @@ def csv2fcsv(csv_pathname):
         for i,l in df.iterrows():
             f.write(','.join([f'{v}' for v in l])+'\n')
 
-def fcsv2csv(fcsv_file):
-    filename, file_extension = os.path.splitext(fcsv_file)
-    assert file_extension == '.fcsv', "Please choose a file with '.fcsv' extension"
-
-    with open(fcsv_file, 'r') as f:
-        l=f.readlines()
-
-    # coordinate system
-    cs=l[1].strip().split('=')[1].strip()
-
-    # column names
-    cn=list(map(str.strip,l[2].split('=')[1].split(',')))
-    # data
-    data=[s.strip().split(',') for s in l[3:]]
-    # check coordinate systems and column names
-    # RAS: if cs='RAS' or cs='0'
-    # LPS: if cs='LPS' or cs='1'
-    # not checking for position column names (could be x,y,z or l,p,s or r,a,s
-    if cs == 'LPS' or cs == '1':
-        for d in data:
-            d[1] = str(-float(d[1]))
-            d[2] = str(-float(d[2]))
-    # change position column names
-    cn[1:4] = ['x','y','z']
-    if len(cn) < len(data[0]): 
-        cn = cn + [None, None]
-
-    # create data frame
-    d=pd.DataFrame(data=data, columns=cn)
-    # save the result
-    d.to_csv(filename + ".csv", index=False)
-
 def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", randomPoints=False, truth_file=None):
     '''
     This function extracts points from a patient's imaging volume. The points can either be randomly
@@ -323,7 +273,6 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
         print(f'{len(q)} Parenchyma points')
 
     # export to csv using pandas
-    #print(f'Exporting to CSV')
     ps = pd.DataFrame(p, columns=list('xyz'))
     ps['type'] = pd.Categorical([title] * len(p))
     if q is not None:
@@ -334,11 +283,6 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
         points = ps
     points.to_csv(os.path.join(patient, outfile))
     csv2fcsv(os.path.join(patient, outfile))
-
-def extractPoints(dataPath, r = 20, nbPoints=100, outfile="points.csv", randomPoints = False):
-    patients = fetch_patient_dirs(dataPath)
-    for patient in patients:
-        extractPointsFromPatient(patient, r=r, nbPoints=nbPoints, outfile=outfile, randomPoints=randomPoints)
 
 def SizeAnev(p, truth_file):
     '''

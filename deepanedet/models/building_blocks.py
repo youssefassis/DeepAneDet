@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 def number_of_features_per_level(init_channel_number, num_levels):

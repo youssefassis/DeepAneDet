@@ -1,7 +1,6 @@
 import json, logging, math, os, sys, shutil
 import numpy as np
 import torch
-import copy
 
 def load_training_config(train_dir):
     '''
@@ -43,7 +42,6 @@ def select_model(config, logger):
         from deepanedet.models.assis_model import AssisModel
         from deepanedet.models.building_blocks import DoubleConv, ExtResNetBlock
         
-        pool_type = config['pool_type'] if 'pool_type' in config else 'max'
         basic_module = ExtResNetBlock if 'basic_module' in config and config['basic_module']=="ExtResNetBlock" else DoubleConv
         params_per_box = config['num parameters'] if 'num parameters' in config else 4
         anchors_per_scale = len(config["anchors"]) if "anchors" in config else 1
@@ -56,24 +54,6 @@ def select_model(config, logger):
                         nb_scales=len(config['scales']),   
                         anchors_per_scale= anchors_per_scale, 
                     )
-        
-#    elif config["model"] == "YOLO_without_Anchors":
-#        from yolo_model import YOLO_without_Anchors
-#        from buildingblocks import DoubleConv, ExtResNetBlock
-#        pool_type = config['pool_type'] if 'pool_type' in config else 'max'
-#        basic_module = ExtResNetBlock if 'basic_module' in config and config['basic_module']=="ExtResNetBlock" else DoubleConv
-#        model = YOLO_without_Anchors(in_channels=config['in_channels'], out_channels=config['out_channels'],
-#                         num_levels = config['depth'], 
-#                         layer_order = config["layer_order"], 
-#                         pool_type = 'conv', 
-#                         conv_kernel_size = 3,
-#                         pool_kernel_size = 2, conv_padding=1,
-#                         basic_module=basic_module, is_testing=is_testing,
-#                         num_classes = 0, params_per_box = 4,
-#                         anchors_per_scale = 1,
-#                         nb_scales = len(config['scales'])
-#                        )
-#                
 
     else:
         raise ValueError(f"Unsupported model '{config['model']}'")
@@ -120,7 +100,6 @@ def save_checkpoint(state, is_best, checkpoint_dir, epoch = None, logger = None)
     torch.save(state, last_file_path)
     if is_best:
         best_file_path = os.path.join(checkpoint_dir, 'best_checkpoint.pytorch')
-        #log_info(f"Saving best checkpoint to '{best_file_path}'")
         shutil.copyfile(last_file_path, best_file_path)
         return True
     return False
