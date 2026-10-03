@@ -18,6 +18,9 @@ class LearningRateScheduler(object):
     def state_dict(self):
         return {key: value for key, value in self.__dict__.items() if key != 'optimizer'}
 
+    def load_state_dict(self, state):
+        self.__dict__.update(state)
+
 class WarmupLRScheduler(LearningRateScheduler):
     def __init__(self, optimizer, min_lr: float, max_lr :float, warmup_steps: int):
         super(WarmupLRScheduler, self).__init__(optimizer)
@@ -86,6 +89,15 @@ class WarmupScheduler(LearningRateScheduler):
         self.schedulers = [Wscheduler]
         if after_warmup_scheduler is not None:
             self.schedulers.append(after_warmup_scheduler)
+
+    def state_dict(self):
+        # plain values only: the scheduler objects hold the optimizer, and checkpoints must load with weights_only
+        return {**super().state_dict(), 'schedulers': [scheduler.state_dict() for scheduler in self.schedulers]}
+
+    def load_state_dict(self, state):
+        for scheduler, scheduler_state in zip(self.schedulers, state['schedulers']):
+            scheduler.load_state_dict(scheduler_state)
+        super().load_state_dict({key: value for key, value in state.items() if key != 'schedulers'})
 
 #    def _decide_stage(self):
 #        if self.update_steps < self.warmup_steps:
