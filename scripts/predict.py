@@ -5,7 +5,7 @@ from deepanedet.inference.prediction import ndl_run_validation_cases
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit(f"Usage: python -m {__spec__.name} path/to/Train001")
+        sys.exit(f"Usage: uv run python {sys.argv[0]} path/to/Train001")
     config = load_training_config(sys.argv[1])
 
     # Load Model
