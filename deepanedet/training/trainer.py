@@ -2,8 +2,8 @@ import os, torch
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from torch.amp import GradScaler
-from schedulers import Poly, ReduceLROnPlateau, WarmupLRScheduler, WarmupScheduler
-from utils import get_logger, RunningAverage, save_checkpoint, load_checkpoint
+from deepanedet.training.schedulers import Poly, ReduceLROnPlateau, WarmupLRScheduler, WarmupScheduler
+from deepanedet.utils import get_logger, RunningAverage, save_checkpoint, load_checkpoint
 
 logger = get_logger('Trainer')
 

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import Data.IO as dio
+from deepanedet.data import io as dio
 
 
 @pytest.fixture
@@ -68,7 +68,7 @@ def test_points_to_spheres_without_points_has_sphere_columns():
 
 
 def test_generate_masks_burns_the_aneurysm_spheres(tmp_path):
-    from Data.Generators import generate_masks_nii
+    from deepanedet.data.generators import generate_masks_nii
 
     patient = tmp_path / "P0001"
     patient.mkdir()
@@ -134,7 +134,7 @@ def test_save_split_reports_a_corrupt_file(tmp_path):
 
 
 def test_generate_masks_of_a_patient_without_aneurysm_is_empty(tmp_path):
-    from Data.Generators import generate_masks_nii
+    from deepanedet.data.generators import generate_masks_nii
 
     patient = tmp_path / "P0001"
     patient.mkdir()

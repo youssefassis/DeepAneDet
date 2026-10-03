@@ -1,6 +1,6 @@
 import json
 
-from prepare import save_config
+from deepanedet.scripts.prepare import save_config
 
 
 def test_save_config_creates_the_training_directory(tmp_path):

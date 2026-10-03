@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 # PyTorch build: cu126 (NVIDIA GPU, run with --gpus all) or cpu
 ARG TORCH=cu126
-ENV PYTHONPATH=/app/dataStrategy:/app/models:/app/resources \
+ENV PYTHONPATH=/app \
     PIP_NO_CACHE_DIR=1 \
     HOME=/home/user
 
