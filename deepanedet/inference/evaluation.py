@@ -1,7 +1,7 @@
 import os, json
 import numpy as np
 from deepanedet.data import io as dio
-from deepanedet.helpers import save_json, intersection_over_union
+from deepanedet.helpers import intersection_over_union
 
 def get_CM_dict(pred_spheres, truths, iou_thr, confidence_thr, pat_name, verbose):
     '''

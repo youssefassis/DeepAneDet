@@ -1,4 +1,3 @@
-import torch
 
 class LearningRateScheduler(object):
     def __init__(self, optimizer):
@@ -99,24 +98,6 @@ class WarmupScheduler(LearningRateScheduler):
             scheduler.load_state_dict(scheduler_state)
         super().load_state_dict({key: value for key, value in state.items() if key != 'schedulers'})
 
-#    def _decide_stage(self):
-#        if self.update_steps < self.warmup_steps:
-#            return 0, self.update_steps
-#        else:
-#            return 1, None
-
-#    def step(self, epoch = None, loss = None):
-#        stage, update_steps = self._decide_stage()
-#        if stage == 0 :
-#            self.schedulers[0].step()
-#            self.update_steps += 1
-#        elif stage == 1 and len(self.schedulers) > 1:
-#            if isinstance(self.schedulers[1], ReduceLROnPlateau) and epoch is not None :
-#                self.schedulers[1].step(epoch = epoch)#, loss=loss)
-#            elif isinstance(self.schedulers[1], Poly) and epoch is not None :
-#                self.schedulers[1].step(epoch = epoch)
-#        return self.get_lr()
-
 class ReduceLROnPlateau(LearningRateScheduler):
     def __init__(self, optimizer, patience = 5, factor = 0.5, wloss=False, start_epoch=0):
         super(ReduceLROnPlateau, self).__init__(optimizer)
@@ -137,16 +118,4 @@ class ReduceLROnPlateau(LearningRateScheduler):
                 self.patience = self.patience // 1.2
                 self.lr *= self.factor
                 self.set_lr(self.optimizer, self.lr)
-        
-        #elif loss is not None and epoch >= self.start_epoch:
-        #    if self.loss < loss:
-        #        self.count += 1
-        #        self.loss = loss
-        #    else:
-        #        self.count = 0
-        #        self.loss = loss
-        #    if self.patience == self.count:
-        #        self.count = 0
-        #        self.lr *= self.factor
-        #        self.set_lr(self.optimizer, self.lr)
         return self.get_lr()

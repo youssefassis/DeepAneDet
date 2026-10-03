@@ -1,14 +1,8 @@
-import sys
 from deepanedet.helpers import to_array
 
 import numpy as np
 import scipy.ndimage as sndi
 import scipy.optimize as sopt
-from deepanedet.volume import edition as ved
-from deepanedet.data import io as dio
-from nibabel.affines import apply_affine
-from skimage.filters import threshold_otsu
-from scipy.ndimage import binary_fill_holes
 
 def invTransPoint(p, center, size, affine=None, disp=None, order=3):
     '''
@@ -85,8 +79,7 @@ def getPatchAndAneurysms(vol, vox2met, center, size, dim, aneurysms, affine=None
     This function takes a 3D volume (vol) and extracts a patch, of a dimension dim (in voxels),
     around a given center with a given size (in mm) and vox2met transform. 
     It also applies an optional affine and non-rigid deformation disp. It then transforms any 
-    aneurysms points located in the patch volume to the same coordinate space and computes their 
-    centers and radii using dio.points_to_spheres(a). The coordinates of aneurysms that are 
+    aneurysms points located in the patch volume to the same coordinate space. The coordinates of aneurysms that are
     entirely inside the patch volume and mainted a distance of 3 voxels from the patch borders 
     are stored in kept_points. If any aneurysm is not entirely inside the patch volume, the 
     function returns fully_covered as False. The function also computes the residual loss 
@@ -106,8 +99,6 @@ def getPatchAndAneurysms(vol, vox2met, center, size, dim, aneurysms, affine=None
     if aneurysms is not None:
         #   apply transform to aneurysms points. Need for transpose since points are stored in (-1,3) array
         a, loss = transPoint(aneurysms.T, center, size, affine=affine, disp=disp)
-        #   compute centers and radii
-        s = dio.points_to_spheres(a)
         
         # transform aneurysms coords to voxel space excluding aneurysms located outside the patch volume
         points_vox = (np.linalg.inv(v2m)[:3,:]@np.vstack((a.T, np.ones(a.shape[0])))).T
