@@ -70,7 +70,6 @@ target/
 .ipynb_checkpoints
 
 # pyenv
-.python-version
 
 # celery beat schedule file
 celerybeat-schedule
@@ -111,3 +110,5 @@ ENV/
 *.jpeg
 
 *.model
+
+.venv/
