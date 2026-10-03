@@ -39,7 +39,7 @@ To use our code, follow the following steps:
 ## Traning
 1. Generate a customized training sample (e.g. the Fold1 directory) from a split file; the other training settings are set in `scripts/prepare.py`:
     ```
-    uv run python scripts/prepare.py path/to/Data_dir path/to/Work_dir Reproducibility/fold1.json --name Fold1
+    uv run python scripts/prepare.py path/to/Data_dir path/to/Work_dir reproducibility/fold1.json --name Fold1
     ```
 
 2. Based on the generated configuration file in "Train001/ndl_config.json", start the training and validation phase by running the following two commands:
@@ -75,21 +75,21 @@ uv run pytest
 uv run ruff check .
 ```
 
-# Annotations and Reproductibity
+# Annotations and Reproducibility
 In order to overcome the limitations of voxel-wise annotation, weak annotation is used to annotate aneurysms. This involves approximating the shape of aneurysms using spheres. 
 
 As illustrated in the figure below, to create these spheres, two points are used as reference: the center of the neck of the aneurysm (F1) and the dome of the aneurysm (F2). The sphere is then created to enclose the aneurysm using these two points as a guide.
 
 <img
-  src="Images/annotation.png"
+  src="docs/annotation.png"
   alt="Our adopted annotation"
   title=" Fast aneurysm annotation: 2 points (F1, F2) approximate the aneurysm with a sphere (red)">
 
-To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "Reproductibity/Annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "Reproductibity/Fold?". The code of the nnU-Net [3] and nnDetection [2] baselines is in "baselines" (see its README for the upstream versions and the changes made for the paper).
+To support the reproducibility of our paper, we provide access to the annotations used in the public dataset [4] at "reproducibility/annotations". Each subject file contains the ground truth annotation of aneurysms as two points with 3D coordinates. Moreover, to replicate the 5-fold cross-validation approach employed in our paper, the subjects used in each fold can be found at "reproducibility/fold?.json". The code of the nnU-Net [3] and nnDetection [2] baselines is in "baselines" (see its README for the upstream versions and the changes made for the paper).
 
 To train or evaluate on these annotations, write them as the truth file ("aneurysms.csv", the "truth file" of "scripts/prepare.py") of each patient directory, laid out as `Data_dir/sub-XXX/ses-YYYYMMDD`:
 ```
-uv run python scripts/convert_annotations.py Reproducibility/Annotations path/to/Data_dir
+uv run python scripts/convert_annotations.py reproducibility/annotations path/to/Data_dir
 ```
 Patients without an annotation file have no aneurysm.
 

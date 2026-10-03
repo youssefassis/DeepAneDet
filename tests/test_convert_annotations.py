@@ -7,7 +7,7 @@ import numpy as np
 from deepanedet.data import io as dio
 from convert_annotations import convert_annotations
 
-ANNOTATION = Path(__file__).parents[1] / "Reproducibility" / "Annotations" / "sub-026_ses-20101106.json"  # 2 aneurysms
+ANNOTATION = Path(__file__).parents[1] / "reproducibility" / "annotations" / "sub-026_ses-20101106.json"  # 2 aneurysms
 
 
 def test_annotations_become_the_truth_file_read_for_training(tmp_path):

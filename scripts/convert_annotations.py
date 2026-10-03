@@ -1,10 +1,10 @@
 '''
-Writes the aneurysm annotations of Reproducibility/Annotations (one sub-XXX_ses-YYYYMMDD.json per patient, each
+Writes the aneurysm annotations of reproducibility/annotations (one sub-XXX_ses-YYYYMMDD.json per patient, each
 aneurysm given by its points P1 and P2) as the truth file read for training and evaluation: a CSV of x, y, z point
 pairs in each patient directory <data_dir>/sub-XXX/ses-YYYYMMDD.
 Patients without an annotation file have no aneurysm and get no truth file.
 
-Usage: uv run python scripts/convert_annotations.py path/to/Reproducibility/Annotations path/to/Data_dir [truth file name, aneurysms.csv by default]
+Usage: uv run python scripts/convert_annotations.py path/to/reproducibility/annotations path/to/Data_dir [truth file name, aneurysms.csv by default]
 '''
 import glob, json, os, sys
 import pandas as pd
@@ -35,7 +35,7 @@ def convert_annotations(annotations_dir, data_dir, truth_file='aneurysms.csv'):
 
 def main():
     if len(sys.argv) not in (3, 4):
-        sys.exit(f"Usage: uv run python {sys.argv[0]} path/to/Reproducibility/Annotations path/to/Data_dir [truth file name]")
+        sys.exit(f"Usage: uv run python {sys.argv[0]} path/to/reproducibility/annotations path/to/Data_dir [truth file name]")
     missing = convert_annotations(*sys.argv[1:])
     if missing:
         print(f"{len(missing)} annotated patients not found in {sys.argv[2]}: {', '.join(missing)}")
