@@ -37,3 +37,27 @@ def test_validation_case_writes_the_final_predictions(tmp_path, tta):
     )
 
     assert (tmp_path / "P0001.json").is_file()
+
+
+def test_validation_cases_keep_patients_with_the_same_session_apart(tmp_path):
+    import json
+
+    import nibabel as ni
+
+    patients = []
+    for subject in ("sub-001", "sub-002"):
+        patient = tmp_path / subject / "ses-20100101"
+        patient.mkdir(parents=True)
+        ni.save(ni.Nifti1Image(np.zeros((16, 8, 8), np.float32), np.eye(4)), patient / "volume.nii.gz")
+        (patient / "config.json").write_text(json.dumps({"init volume": "volume.nii.gz"}))
+        patients.append(str(patient))
+
+    prediction.ndl_run_validation_cases(
+        patients, "cpu", OneDetectionPerPatch(), patch_size=[8, 8, 8], patch_dim=[8, 8, 8],
+        input_volume="init volume", normalization=None, output_dir=str(tmp_path / "out"),
+    )
+
+    assert sorted(p.name for p in (tmp_path / "out").glob("*.json")) == [
+        "sub-001_ses-20100101.json",
+        "sub-002_ses-20100101.json",
+    ]
