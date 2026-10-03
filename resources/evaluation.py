@@ -1,9 +1,9 @@
 import os, json
 import numpy as np
 import Data.IO as dio
-from helpers import save_json, intersection_over_union, angle_between_vectors
+from helpers import save_json, intersection_over_union
 
-def get_CM_dict(predictions, truths, iou_thr, confidence_thr, pat_name, verbose):
+def get_CM_dict(pred_spheres, truths, iou_thr, confidence_thr, pat_name, verbose):
     '''
     This function computes the confusion matrix (CM) for the predictions. 
     Parameters:
