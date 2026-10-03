@@ -33,7 +33,7 @@ def pointsInRadius(q,p,r):
     else:
         Qq=q
     tree=skn.KDTree(p)
-    return tree.query_radius(Qq,r)[0]
+    return np.unique(np.concatenate(tree.query_radius(Qq,r)))
 
 def selectPoints(vol,vox2met,thresLow,r,thresHigh=None,fPoints=None,
                  nbPoints=None, extractType='Vessels'):
@@ -82,8 +82,8 @@ def selectPoints(vol,vox2met,thresLow,r,thresHigh=None,fPoints=None,
     if fPoints is not None and len(fPoints) > 0:
         if len(fPoints.shape) == 1:
             fPoints = fPoints[np.newaxis,:]
-        i=tree.query_radius(fPoints,r)[0]
-        removed[i]=True
+        for i in tree.query_radius(fPoints,r):
+            removed[i]=True
 
     ret=np.empty((0,3))
 
