@@ -28,29 +28,29 @@ To use our code, follow the following steps:
     ./runDocker.sh
     ```
 4. Open JupyterLab at http://localhost:5000, with the token shown by `docker logs deepanedet`.
-5. Outside Docker, install the requirements (`pip install -r requirements.txt`). The code is the `deepanedet` package: run the commands below from the repository root (inside Docker, `deepanedet` can be imported from any folder).
+5. Outside Docker, install the project with [uv](https://docs.astral.sh/uv/): `uv sync --extra cu126` (NVIDIA GPU) or `uv sync --extra cpu`. Run the commands below from the repository root (inside Docker, without `uv run`).
 6. Prepare the data by generating the "noskull.nii.gz" and "points.csv" files of the patient directories (`path/to/Data_dir/sub-*/ses-*` for session folders):
     ```
-    python -m deepanedet.scripts.remove_skull path/to/Data_dir/P*
-    python -m deepanedet.scripts.extract_points path/to/Data_dir/P*
+    uv run python -m deepanedet.scripts.remove_skull path/to/Data_dir/P*
+    uv run python -m deepanedet.scripts.extract_points path/to/Data_dir/P*
     ```
     Negative patch centers are kept away from the aneurysms listed under "pts aneurysm" in each "config.json", or in the file given with `--truth-file` (e.g. `--truth-file aneurysms.csv`).
 
 ## Traning
 1. Generate a customized training sample (e.g. the Fold1 directory) from a split file; the other training settings are set in `deepanedet/scripts/prepare.py`:
     ```
-    python -m deepanedet.scripts.prepare path/to/Data_dir path/to/Work_dir Reproducibility/fold1.json --name Fold1
+    uv run python -m deepanedet.scripts.prepare path/to/Data_dir path/to/Work_dir Reproducibility/fold1.json --name Fold1
     ```
 
 2. Based on the generated configuration file in "Train001/ndl_config.json", start the training and validation phase by running the following two commands:
     ```
-    python -m deepanedet.scripts.train path/to/Train001
+    uv run python -m deepanedet.scripts.train path/to/Train001
     ```
 
 ## Inference
 * Use the script "predict.py" to perform inference by running:
     ```
-    python -m deepanedet.scripts.predict path/to/Train001
+    uv run python -m deepanedet.scripts.predict path/to/Train001
     ```
 * The predictions of the validation and testing patients of the split file are generated in "path/to/Train001/Predictions/<epochs>_epochs/...". For each patient, the predictions are saved in a separate JSON file named after the patient folder ("P0001.json"), or after the subject and session for session folders ("sub-013/ses-20101220" gives "sub-013_ses-20101220.json"). Each prediction includes the center coordinates (x, y, z) in mm, the radius in mm, and a confidence score between 0 and 1.
 
@@ -58,7 +58,7 @@ To use our code, follow the following steps:
 ## Evaluation
 - Evaluate the model using the script "evaluate.py" by running:
     ```
-    python -m deepanedet.scripts.evaluate path/to/Train001/Predictions/<epochs>_epochs/Validation_0.01/None_detections_per_patch
+    uv run python -m deepanedet.scripts.evaluate path/to/Train001/Predictions/<epochs>_epochs/Validation_0.01/None_detections_per_patch
     ```
 - The validation and testing patients of the split file are evaluated against their "truth file" (see "ndl_config.json"). Detections are matched from the most to the least confident, each to the not yet detected aneurysm it overlaps most (IoU >= 0.1); other detections are false positives.
 - After running the evaluation script, the results are generated as a CSV table of the detections and a PNG figure that summarizes the performance of the model on the test images, both in the predictions directory.
@@ -70,9 +70,9 @@ To use our code, follow the following steps:
 
 ## Tests
 ```
-pip install -r requirements-dev.txt
-pytest
-ruff check .
+uv sync --extra cpu
+uv run pytest
+uv run ruff check .
 ```
 
 # Annotations and Reproductibity
@@ -89,7 +89,7 @@ To support the reproducibility of our paper, we provide access to the annotation
 
 To train or evaluate on these annotations, write them as the truth file ("aneurysms.csv", the "truth file" of "deepanedet/scripts/prepare.py") of each patient directory, laid out as `Data_dir/sub-XXX/ses-YYYYMMDD`:
 ```
-python -m deepanedet.scripts.convert_annotations Reproducibility/Annotations path/to/Data_dir
+uv run python -m deepanedet.scripts.convert_annotations Reproducibility/Annotations path/to/Data_dir
 ```
 Patients without an annotation file have no aneurysm.
 
