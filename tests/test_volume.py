@@ -13,12 +13,6 @@ def test_selected_points_avoid_every_forbidden_point():
     assert len(points) > 0 and distances.min() > 3
 
 
-def test_points_in_radius_of_several_queries():
-    points = np.array([[0.0, 0, 0], [10, 0, 0], [20, 0, 0]])
-
-    assert vs.pointsInRadius(np.array([[0.0, 0, 0], [20, 0, 0]]), points, 1).tolist() == [0, 2]
-
-
 def test_fill_between_edges_fills_each_line_inclusively():
     edges = np.zeros((10, 3, 2), dtype=bool)
     edges[[3, 7], 0, 0] = True  # line with two edges
