@@ -19,23 +19,20 @@ To use our code, follow the following steps:
     git clone https://gitlab.inria.fr/yassis/DeepAneDet.git
     cd DeepAneDet
     ```
-2. Edit the "Docker" file by specifying the user_name, group_name, PYTHONPATH, and the configuration of Jupyterlab.
-3. Create the Docker container by running the following commands:
+2. Build the Docker image (PyTorch for NVIDIA GPUs by default, or `./buildDocker.sh cpu`):
     ```
-    chmod +x buildDocker.sh
-    ./buildDocker
+    ./buildDocker.sh
     ```
-4. Run the Docker container by running the following two commands:
+3. Run the container, as your user and with your home directory mounted at the same path:
     ```
-    chmod +x runDocker.sh
-    ./runDocker
+    ./runDocker.sh
     ```
-5. Access to the Jupyterlab from your browser.
-6. The scripts import the modules of `dataStrategy`, `models` and `resources`: outside Docker, add them to the `PYTHONPATH`:
+4. Open JupyterLab at http://localhost:5000, with the token shown by `docker logs deepanedet`.
+5. Docker sets the `PYTHONPATH` the scripts need. Outside Docker, install the requirements (`pip install -r requirements.txt`) and add the modules of `dataStrategy`, `models` and `resources` to the `PYTHONPATH`:
     ```
     export PYTHONPATH="$PWD/dataStrategy:$PWD/models:$PWD/resources:$PYTHONPATH"
     ```
-7. Prepare the data by generating the "noskull.nii.gz" and "points.csv" files of the patient directories (`path/to/Data_dir/sub-*/ses-*` for session folders):
+6. Prepare the data by generating the "noskull.nii.gz" and "points.csv" files of the patient directories (`path/to/Data_dir/sub-*/ses-*` for session folders):
     ```
     python resources/scripts/removeSkull.py path/to/Data_dir/P*
     python resources/scripts/extractPoints.py path/to/Data_dir/P*
