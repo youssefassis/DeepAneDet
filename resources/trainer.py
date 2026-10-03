@@ -2,7 +2,7 @@ import os, torch
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from torch.amp import GradScaler
-from schedulers import Poly, WarmupLRScheduler, WarmupScheduler
+from schedulers import Poly, ReduceLROnPlateau, WarmupLRScheduler, WarmupScheduler
 from utils import get_logger, RunningAverage, save_checkpoint, load_checkpoint
 
 logger = get_logger('Trainer')
@@ -124,13 +124,10 @@ class Trainer:
                     self.scheduler.schedulers[0].step()
 
         else: # after validation loop
-            # Poly
-            if isinstance(self.scheduler, Poly):
-                self.scheduler.step(epoch = self.num_epoch)
-
-            elif isinstance(self.scheduler, WarmupScheduler):                    
-                if isinstance(self.scheduler.schedulers[1], Poly):
-                    self.scheduler.schedulers[1].step(epoch = self.num_epoch)
+            # Poly or ReduceLROnPlateau, alone or after the warmup
+            scheduler = self.scheduler.schedulers[-1] if isinstance(self.scheduler, WarmupScheduler) else self.scheduler
+            if isinstance(scheduler, (Poly, ReduceLROnPlateau)):
+                scheduler.step(epoch = self.num_epoch)
 
     
     def _save_checkpoint(self, is_best, last_score, epoch=None):
