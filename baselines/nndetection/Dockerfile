@@ -4,7 +4,7 @@ ARG env_det_verbose=1
 ARG OMP_NUM_THREADS=1
 
 ENV DEBIAN_FRONTEND noninteractive 
-ENV NB_USER yassis 
+ENV NB_USER user
 ENV HOME /home/${NB_USER}
 ENV det_num_threads $env_det_num_threads
 ENV det_verbose $env_det_verbose 
@@ -37,5 +37,5 @@ USER ${NB_USER}
 EXPOSE 5000
 VOLUME ${HOME}
 
-ENV PYTHONPATH "${PYTHONPATH}:/home/yassis/NeuroDL/git/aneurysms/dataStrategy:/home/yassis/NeuroDL/git/aneurysms/models:/home/yassis/NeuroDL/git/aneurysms/ressources"
+ENV PYTHONPATH "${PYTHONPATH}:/path/to/git/aneurysms/dataStrategy:/path/to/git/aneurysms/models:/path/to/git/aneurysms/ressources"
 CMD ["jupyter", "lab"]  
