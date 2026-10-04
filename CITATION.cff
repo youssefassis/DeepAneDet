@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: "If you use this software, please cite the paper below."
 title: "DeepAneDet: intracranial aneurysm detection from MRA, an object detection perspective"
 type: software
 authors:
@@ -11,3 +11,27 @@ keywords:
   - magnetic resonance angiography
   - deep learning
   - object detection
+preferred-citation:
+  type: article
+  title: "Intracranial aneurysm detection: an object detection perspective"
+  authors:
+    - family-names: Assis
+      given-names: Youssef
+    - family-names: Liao
+      given-names: Liang
+    - family-names: Pierre
+      given-names: Fabien
+    - family-names: Anxionnat
+      given-names: René
+    - family-names: Kerrien
+      given-names: Erwan
+  journal: "International Journal of Computer Assisted Radiology and Surgery"
+  publisher:
+    name: Springer
+  year: 2024
+  volume: 19
+  issue: 9
+  start: 1667
+  end: 1675
+  doi: "10.1007/s11548-024-03132-z"
+  url: "https://doi.org/10.1007/s11548-024-03132-z"

@@ -4,7 +4,7 @@
 
 Detection of intracranial aneurysms in 3D Time-of-Flight MRA as an object detection problem: a 3D single-stage,
 anchor-free network predicts each aneurysm as a sphere. This is the code and the annotations of the paper
-["Intracranial Aneurysm Detection: An object detection perspective"](https://link.to.paper/).
+["Intracranial Aneurysm Detection: An object detection perspective"](https://doi.org/10.1007/s11548-024-03132-z).
 
 <details>
 <summary>Abstract</summary>
