@@ -148,6 +148,8 @@ def test_generate_masks_of_a_patient_without_aneurysm_is_empty(tmp_path):
 
 def test_relative_split_entries_are_taken_from_the_data_folder(tmp_path):
     split = tmp_path / "fold1.json"
-    split.write_text(json.dumps({"training list": ["sub-001/ses-1"], "validation list": [], "testing list": ["/abs/P0001"]}))
+    split.write_text(
+        json.dumps({"training list": ["sub-001/ses-1"], "validation list": [], "testing list": ["/abs/P0001"]})
+    )
 
     assert dio.readSplit(str(split), "/data") == (["/data/sub-001/ses-1"], [], ["/abs/P0001"])

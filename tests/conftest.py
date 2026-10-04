@@ -35,7 +35,11 @@ def training_config():
         "percentage of negative patches": 50,
         "flip probability": 0.5,
         "flip axes": [0],
-        **{f"{kind} sample {aug}": None for kind in ("positive", "negative") for aug in ("shift", "rotation", "distortion", "scaling")},
+        **{
+            f"{kind} sample {aug}": None
+            for kind in ("positive", "negative")
+            for aug in ("shift", "rotation", "distortion", "scaling")
+        },
     }
 
 
