@@ -16,7 +16,7 @@ def main():
     workers = 12
 
     # Data Preparation
-    train_list, _, _ = readSplit(config['split_file'])
+    train_list, _, _ = readSplit(config['split_file'], config.get('base_dir'))
     valid_list = []
 
     train_db = add_points_to_patient_data(read_patient_data_base(pat_list = train_list,
