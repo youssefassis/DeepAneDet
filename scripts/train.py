@@ -1,4 +1,4 @@
-import sys, torch
+import os, sys, torch
 
 from deepanedet.utils import get_optimizer_scheduler, get_model, load_training_config
 from deepanedet.data.io import add_points_to_patient_data, readSplit, read_patient_data_base
@@ -13,7 +13,7 @@ def main():
     config = load_training_config(sys.argv[1])
     
     # Multiprocessing data loading
-    workers = 12
+    workers = min(12, os.cpu_count() or 1) # data loading processes, at most one per CPU
 
     # Data Preparation
     train_list, _, _ = readSplit(config['split_file'], config.get('base_dir'))
