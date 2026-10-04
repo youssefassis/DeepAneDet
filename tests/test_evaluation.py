@@ -14,11 +14,12 @@ def test_confusion_matrix_counts_tp_fp_and_fn():
         ]
     )
 
-    detections, fns = get_CM_dict(predictions, truths, iou_thr=0.1, confidence_thr=0.01, pat_name="P0001", verbose=False)
+    detections, fns = get_CM_dict(
+        predictions, truths, iou_thr=0.1, confidence_thr=0.01, pat_name="P0001", verbose=False
+    )
 
     assert [(d["TP"], d["FP"]) for d in detections] == [(1, 0), (0, 1)]
     assert [fn["Diameter"] for fn in fns] == [6.0]
-
 
 
 def match(predictions, truths):
@@ -59,6 +60,7 @@ def test_the_most_confident_detection_is_matched_first():
     detections, _ = get_CM_dict(np.array(predictions), np.array(truths), 0.1, 0.01, "P0001", False)
 
     assert [(d["Confidence"], d["TP"]) for d in detections] == [(90.0, 1), (30.0, 0)]
+
 
 def test_detections_are_read_for_each_patient_of_the_split(evaluation_fold):
     from deepanedet.inference.evaluation import get_detections
@@ -102,7 +104,9 @@ def test_evaluate_script_without_false_positives(evaluation_fold, monkeypatch, k
     _, predictions_dir = evaluation_fold
     for prediction_file in predictions_dir.glob("*.json"):
         detections = json.loads(prediction_file.read_text())
-        kept_detections = {k: d for k, d in detections.items() if d["confidence"] == 0.9} if kept == "true positives" else {}
+        kept_detections = (
+            {k: d for k, d in detections.items() if d["confidence"] == 0.9} if kept == "true positives" else {}
+        )
         prediction_file.write_text(json.dumps(kept_detections))
     monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir)])
 

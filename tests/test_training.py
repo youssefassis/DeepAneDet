@@ -39,9 +39,20 @@ def train(patient_db, model_config):
         config = {**model_config, "n_epochs": n_epochs, **overrides}
         loaders, iterations = getDataloaders(patient_db, None, config, workers=0)
         model = get_model(config)
-        optimizer, scheduler = get_optimizer_scheduler(model, config, warmup_steps=iterations["train"] * config["warmEpochs"])
+        optimizer, scheduler = get_optimizer_scheduler(
+            model, config, warmup_steps=iterations["train"] * config["warmEpochs"]
+        )
         trainer = create_trainer(
-            config, "cpu", model, optimizer, scheduler, get_loss_criterion("YOLO_Loss"), loaders, iterations, config["scales"], None
+            config,
+            "cpu",
+            model,
+            optimizer,
+            scheduler,
+            get_loss_criterion("YOLO_Loss"),
+            loaders,
+            iterations,
+            config["scales"],
+            None,
         )
         trainer.fit()
         return trainer
