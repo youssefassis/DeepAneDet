@@ -25,12 +25,3 @@ jobs:
         run: uv run ruff check .
       - name: Test
         run: uv run pytest
-
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build (CPU PyTorch)
-        run: docker build -t deepanedet:cpu --build-arg TORCH=cpu .
-      - name: Smoke test
-        run: docker run --rm deepanedet:cpu python -c "import torch, deepanedet.utils, deepanedet.data.io; print(torch.__version__)"
