@@ -33,10 +33,6 @@ uv sync --extra cpu      # or CPU only
 ```
 Commands run from the repository folder with `uv run`.
 
-**Docker:** `scripts/build_docker.sh` builds the image (`scripts/build_docker.sh cpu` for CPU only), and
-`scripts/run_docker.sh` starts JupyterLab on http://localhost:5000 as your user, with your home folder mounted at the
-same path (the token is shown by `docker logs deepanedet`). Inside the container, run the commands without `uv run`.
-
 ## Data
 Each patient is a folder, either `P0001`-like or `sub-XXX/ses-YYYYMMDD` as in the public dataset:
 ```

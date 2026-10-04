@@ -29,8 +29,6 @@ dependencies = [
 # PyTorch build, for uv: `uv sync --extra cpu` or `uv sync --extra cu126` (see [tool.uv.sources])
 cpu = ["torch>=2.3"]
 cu126 = ["torch>=2.3"]
-# JupyterLab, launched by the Docker image
-jupyter = ["jupyterlab"]
 
 [dependency-groups]
 dev = ["pytest", "ruff"]
