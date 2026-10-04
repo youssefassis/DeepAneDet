@@ -76,8 +76,8 @@ Each aneurysm is approximated by a sphere defined by two points: the center of i
   ```
   uv run python scripts/convert_annotations.py reproducibility/annotations Data
   ```
-- `reproducibility/fold1.json` to `fold5.json`: the 5-fold cross-validation splits. Replace their
-  `/path/to/directory` prefix with your data folder.
+- `reproducibility/fold1.json` to `fold5.json`: the 5-fold cross-validation splits. Their patient folders are
+  relative to the data folder given to `prepare.py`.
 - `baselines`: the nnU-Net [3] and nnDetection [2] baselines (see its README).
 
 ## References
