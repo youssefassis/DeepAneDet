@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import json
-import scipy.spatial.transform.rotation as sstr
+from scipy.spatial.transform import Rotation
 
 from deepanedet.volume import edition as ved
 from deepanedet.data import io as dio
@@ -64,7 +64,7 @@ def generate_transforms(trans=None, scal=None, rot=None, center=None, disp=None)
                 raise TypeError("rot argument should either a scalar or a 3-vector")
         r = r * (2 * (np.random.random_sample(3) - 0.5))
         affine = np.eye(4)
-        affine[:3, :3] = np.multiply(s, sstr.Rotation.from_euler("zyx", r, degrees=True).as_matrix())
+        affine[:3, :3] = np.multiply(s, Rotation.from_euler("zyx", r, degrees=True).as_matrix())
         affine[:3, 3] = t if center is None else t + center.ravel() @ (np.eye(3) - affine[:3, :3]).T
 
     if disp is not None:
