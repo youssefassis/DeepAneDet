@@ -6,6 +6,7 @@ TensorBoard logs and the resolved configuration (.hydra/) are written to <data_d
 command again resumes from the last checkpoint.
 """
 
+import json
 import os
 
 import hydra
@@ -17,7 +18,7 @@ from deepanedet.data.io import add_points_to_patient_data, read_patient_data_bas
 from deepanedet.training.dataset import get_dataloaders
 from deepanedet.training.losses import get_loss_criterion
 from deepanedet.training.trainer import create_trainer
-from deepanedet.utils import create_lr_scheduler, detection_grid_size, get_model
+from deepanedet.utils import create_lr_scheduler, detection_grid_size, get_model, run_info, seed_everything
 
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train")
@@ -25,6 +26,12 @@ def main(cfg):
     if cfg.anchors is not None and len(cfg.anchors) != cfg.model.anchors_per_scale:
         raise ValueError(f"{len(cfg.anchors)} anchors but model.anchors_per_scale={cfg.model.anchors_per_scale}")
     train_dir = HydraConfig.get().runtime.output_dir
+    if cfg.seed is not None:
+        seed_everything(cfg.seed)
+    torch.backends.cudnn.benchmark = not cfg.deterministic
+    torch.backends.cudnn.deterministic = cfg.deterministic
+    with open(os.path.join(train_dir, "run_info.json"), "w") as f:
+        json.dump(run_info(seed=cfg.seed), f, indent=2)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = get_model(cfg.model, weight_init=cfg.weight_init, device=device)
