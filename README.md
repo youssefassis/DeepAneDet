@@ -31,7 +31,7 @@ git clone https://github.com/youssefassis/DeepAneDet.git && cd DeepAneDet
 uv sync --extra cu126    # NVIDIA GPU (CUDA 12.6)
 uv sync --extra cpu      # or CPU only
 ```
-Commands run from the repository folder with `uv run`.
+The pipeline steps are installed as `deepanedet-*` commands, run with `uv run`.
 
 ## Data
 Each patient is a folder, either `P0001`-like or `sub-XXX/ses-YYYYMMDD` as in the public dataset:
@@ -41,23 +41,23 @@ Data/
     volume.nii.gz    TOF-MRA scan
     aneurysms.csv    aneurysms: two points (x, y, z columns, in mm) per aneurysm, see Annotations
     config.json      {"init volume": "volume.nii.gz", "pts aneurysm": "aneurysms.csv"}
-    noskull.nii.gz   skull-stripped scan (written by remove_skull.py)
-    points.csv       negative patch centers (written by extract_points.py)
+    noskull.nii.gz   skull-stripped scan (written by deepanedet-remove-skull)
+    points.csv       negative patch centers (written by deepanedet-extract-points)
 ```
 Patients without aneurysm have no `aneurysms.csv`. A split file lists the training, validation and testing patient
 folders, as in `reproducibility/fold1.json`.
 
 ## Usage
 ```
-uv run python scripts/remove_skull.py Data/P*                                       # 1. skull stripping
-uv run python scripts/extract_points.py Data/P*                                     # 2. negative patch centers
-uv run python scripts/prepare.py Data Work reproducibility/fold1.json --name Fold1  # 3. training folder
-uv run python scripts/train.py Work/Fold1                                           # 4. training
-uv run python scripts/predict.py Work/Fold1                                         # 5. prediction
-uv run python scripts/evaluate.py Work/Fold1/Predictions/<n>_epochs/Validation_0.01/None_detections_per_patch
+uv run deepanedet-remove-skull Data/P*                                       # 1. skull stripping
+uv run deepanedet-extract-points Data/P*                                     # 2. negative patch centers
+uv run deepanedet-prepare Data Work reproducibility/fold1.json --name Fold1  # 3. training folder
+uv run deepanedet-train Work/Fold1                                           # 4. training
+uv run deepanedet-predict Work/Fold1                                         # 5. prediction
+uv run deepanedet-evaluate Work/Fold1/Predictions/<n>_epochs/Validation_0.01/None_detections_per_patch
 ```
-- `prepare.py` writes `Work/Fold1/ndl_config.json`; the other training settings (patch size, augmentation,
-  optimizer...) are set in the script.
+- `deepanedet-prepare` writes `Work/Fold1/ndl_config.json`; the other training settings (patch size, augmentation,
+  optimizer...) are set in `deepanedet/cli/prepare.py`.
 - Training saves `last_checkpoint.pytorch` and TensorBoard logs in the training folder.
 - Prediction runs on the validation and testing patients of the split, and writes one JSON file per patient
   (`P0001.json`, `sub-013_ses-20101220.json`): each detection has a center (x, y, z) and a radius in mm, and a
@@ -74,10 +74,10 @@ Each aneurysm is approximated by a sphere defined by two points: the center of i
 - `reproducibility/annotations`: annotations of the public dataset [4], one JSON file per subject. Write them as the
   `aneurysms.csv` of each patient folder with:
   ```
-  uv run python scripts/convert_annotations.py reproducibility/annotations Data
+  uv run deepanedet-convert-annotations reproducibility/annotations Data
   ```
 - `reproducibility/fold1.json` to `fold5.json`: the 5-fold cross-validation splits. Their patient folders are
-  relative to the data folder given to `prepare.py`.
+  relative to the data folder given to `deepanedet-prepare`.
 - `baselines`: the nnU-Net [3] and nnDetection [2] baselines (see its README).
 
 ## References

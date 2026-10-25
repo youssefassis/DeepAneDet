@@ -25,6 +25,15 @@ dependencies = [
     "tqdm",
 ]
 
+[project.scripts]
+deepanedet-convert-annotations = "deepanedet.cli.convert_annotations:main"
+deepanedet-remove-skull = "deepanedet.cli.remove_skull:main"
+deepanedet-extract-points = "deepanedet.cli.extract_points:main"
+deepanedet-prepare = "deepanedet.cli.prepare:main"
+deepanedet-train = "deepanedet.cli.train:main"
+deepanedet-predict = "deepanedet.cli.predict:main"
+deepanedet-evaluate = "deepanedet.cli.evaluate:main"
+
 [project.optional-dependencies]
 # PyTorch build, for uv: `uv sync --extra cpu` or `uv sync --extra cu126` (see [tool.uv.sources])
 cpu = ["torch>=2.3"]
@@ -57,7 +66,6 @@ include = ["deepanedet*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["scripts"]
 
 [tool.ruff]
 line-length = 120

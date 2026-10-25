@@ -80,7 +80,7 @@ def test_evaluate_script_writes_the_detection_table_and_figure(evaluation_fold, 
     matplotlib.use("Agg")
     import pandas as pd
 
-    import evaluate
+    from deepanedet.cli import evaluate
 
     _, predictions_dir = evaluation_fold
     monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir) + "/"])
@@ -99,7 +99,7 @@ def test_evaluate_script_without_false_positives(evaluation_fold, monkeypatch, k
     import matplotlib
 
     matplotlib.use("Agg")
-    import evaluate
+    from deepanedet.cli import evaluate
 
     _, predictions_dir = evaluation_fold
     for prediction_file in predictions_dir.glob("*.json"):
@@ -119,7 +119,7 @@ def test_evaluate_script_without_aneurysm_reports_it(evaluation_fold, monkeypatc
     import matplotlib
 
     matplotlib.use("Agg")
-    import evaluate
+    from deepanedet.cli import evaluate
 
     _, predictions_dir = evaluation_fold
     for truth in (predictions_dir.parents[3] / "Data").glob("*/aneurysms.csv"):
