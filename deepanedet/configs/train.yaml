@@ -20,6 +20,8 @@ mixed_precision: true               # float16 mixed precision on GPUs
 save_every: 10                      # epochs between kept <epoch>_checkpoint.pytorch files
 num_workers: 12                     # data loading processes, at most one per CPU
 weight_init: he                     # he (Kaiming normal) or pytorch (PyTorch defaults)
+seed: 0                             # seeds Python, NumPy and PyTorch; null for a different run each time
+deterministic: false                # deterministic cuDNN algorithms, for identical GPU runs (slower)
 
 hydra:
   run:

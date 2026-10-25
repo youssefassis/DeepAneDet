@@ -87,7 +87,7 @@ def test_train_predict_and_evaluate_from_a_relative_split(tmp_path):
 
     trained = run_command("train", *TINY_TRAINING, "data_dir=Data", "epochs=1", cwd=tmp_path)
     assert trained.returncode == 0, trained.stderr[-2000:]
-    assert (train_dir / "last_checkpoint.pytorch").is_file()
+    assert (train_dir / "last_checkpoint.pytorch").is_file() and (train_dir / "run_info.json").is_file()
 
     # from another folder: the training's relative data folder and split file are found again
     predicted = run_command("predict", f"train_dir={train_dir}", "margin=2", "tta=false", cwd=tmp_path / "Data")
