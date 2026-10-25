@@ -46,7 +46,7 @@ def test_same_seed_gives_the_same_trained_weights(tmp_path, num_workers):
         ]
         result = run_command("train", *overrides, cwd=tmp_path)
         assert result.returncode == 0, result.stderr[-2000:]
-        return torch.load(tmp_path / "0Work" / name / "last_checkpoint.pytorch", weights_only=False)["model_state_dict"]
+        return torch.load(tmp_path / "0Work" / name / "last_checkpoint.pytorch")["model_state_dict"]
 
     first, second = train("a"), train("b")
 

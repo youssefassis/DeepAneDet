@@ -64,6 +64,8 @@ def read_nii_from_file(fname, dtype=np.float32):
     Read a nii volume and return a 2-tuple with the voxel data (np array, float32 by default: half the memory of
     nibabel's float64) and the voxel2metric tranform
     """
+    if not os.path.isfile(fname):
+        raise FileNotFoundError(f"No NIfTI file {fname}")
     nv = ni.load(fname)
     return nv.get_fdata(dtype=dtype), nv.affine
 
@@ -124,7 +126,8 @@ def read_patient_data(vol_file, ane_file, normalize=None):
         - 'Linear': linear rescaling between 0 and 1
         - 'Normal': rescaling to 0-mean and unit-variance data
     """
-    assert normalize in ["Linear", "Normal", None]
+    if normalize not in ["Linear", "Normal", None]:
+        raise ValueError(f"Unsupported normalize '{normalize}', expected Linear, Normal or null")
 
     d, affine = read_nii_from_file(vol_file)
 
@@ -147,6 +150,8 @@ def rescale(vol):
     """
     m = np.min(vol)
     M = np.max(vol)
+    if M == m:
+        raise ValueError("Cannot rescale a constant volume")
     vol = (vol - m) / (M - m)
     return vol
 
@@ -157,6 +162,8 @@ def standardize(vol):
     """
     m = np.mean(vol)
     std = np.std(vol)
+    if std == 0:
+        raise ValueError("Cannot standardize a constant volume")
     vol = (vol - m) / std
     return vol
 
@@ -265,7 +272,8 @@ def read_split(cfg, data_dir=None):
 
 def csv2fcsv(csv_pathname):
     filename, file_extension = os.path.splitext(csv_pathname)
-    assert file_extension == ".csv", "Please choose a file '.csv' extension"
+    if file_extension != ".csv":
+        raise ValueError(f"{csv_pathname} is not a .csv file")
     fcsv_fileOut = filename + ".fcsv"
     pcsv = pd.read_csv(csv_pathname)
     label = [f"{t}_{i}" for i, t in pcsv[["Unnamed: 0", "type"]].to_numpy()]

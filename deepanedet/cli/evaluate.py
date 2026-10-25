@@ -110,7 +110,6 @@ def main(cfg):
 
     assert len(confidences) == len(ious) == len(diameters_TP + diameters_FP)
     assert len(diameters_TP) == len(diameters_TP_GT) == len(confidence_TP)
-    assert len(confidence_FP) == len(confidence_FP)
 
     # deepanedet-predict writes to prediction/<epoch>_epochs by default
     epoch_dir = re.search(r"(\d+)_epochs", predictions_dir)

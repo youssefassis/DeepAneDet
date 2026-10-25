@@ -67,8 +67,10 @@ def create_conv(in_channels, out_channels, kernel_size, order, padding, stride=1
     The function returns a list of nn.Module objects corresponding to the specified order of operations.
 
     """
-    assert "c" in order, "Conv layer MUST be present in each block"
-    assert order[0] not in "rlm", "Non-linearity cannot be the first operation in the layer"
+    if "c" not in order:
+        raise ValueError(f"layer_order '{order}' has no conv layer (c)")
+    if order[0] in "rlm":
+        raise ValueError(f"layer_order '{order}' starts with a non-linearity")
     modules = []
     for i, char in enumerate(order):
         # Activation functions
@@ -239,7 +241,8 @@ class Encoder(nn.Module):
     ):
         super(Encoder, self).__init__()
 
-        assert pool_type in ["max", "avg", "conv"]
+        if pool_type not in ["max", "avg", "conv"]:
+            raise ValueError(f"Unsupported pool_type '{pool_type}', expected max, avg or conv")
 
         self.pooling = None
         stride = 1

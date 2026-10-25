@@ -44,8 +44,8 @@ def generate_transforms(trans=None, scal=None, rot=None, center=None, disp=None)
         s = np.ones((3, 3))
         if scal is not None:
             if isinstance(scal, list):
-                assert scal[1] > 1, "max scaling factor should be greather than 1"
-                # assert scal[0] < 1, "min scaling factor should be lower than 1"
+                if scal[1] <= 1:
+                    raise ValueError(f"The maximum scaling factor {scal[1]} should be greater than 1")
                 s = to_array(
                     value=np.random.uniform(low=scal[0], high=scal[1], size=None), length=3
                 )  # 0.6 -> 0.8 before

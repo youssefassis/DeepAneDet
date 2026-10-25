@@ -14,14 +14,15 @@ def random_flip(data, patch_shape, axes=[0], flip_probability=0):
     along that axis. If the random number is less than or equal to the flip_probability, the data is flipped
     along that axis.
     """
-    assert len(axes) > 0, "Flip around at least one axis"
-    assert flip_probability >= 0 and flip_probability <= 1, "Flip probability should be positive"
+    if len(axes) == 0:
+        raise ValueError("Flip around at least one axis")
+    if not 0 <= flip_probability <= 1:
+        raise ValueError(f"Flip probability {flip_probability} is not between 0 and 1")
 
     for axis in axes:
         prob = np.random.uniform()
         if prob <= flip_probability:
             for idx in range(len(data)):
-                assert data[idx].ndim in [2, 3], "Supports only 3D (DxHxW) images"
                 if data[idx].ndim == 3:  # volume
                     data[idx] = np.flip(data[idx], axis).copy()
                 elif data[idx].ndim == 2:  # Coordinates

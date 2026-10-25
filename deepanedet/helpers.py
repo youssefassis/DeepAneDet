@@ -140,7 +140,6 @@ def save_spheres(spheres, out_file):
 
 
 def keep_only_intersected_spheres(spheres1, spheres2, min_iou_threshold):
-    assert isinstance(spheres1, list) and isinstance(spheres2, list)
     if len(spheres1) == 0 or len(spheres2) == 0:
         return []
 
@@ -170,7 +169,6 @@ def spheres_to_metric(spheres, v2m):
     def apply_transformation(elements, trans):
         return apply_affine(trans, elements)
 
-    assert isinstance(spheres, list)
     v2m = v2m.squeeze()
     vox_size = np.linalg.norm(v2m[:3, :3], axis=0)
 

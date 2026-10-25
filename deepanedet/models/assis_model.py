@@ -83,11 +83,14 @@ class AssisModel(nn.Module):
     ):
         super(AssisModel, self).__init__()
         if isinstance(basic_module, str):  # as named in configs/model
-            basic_module = {"DoubleConv": DoubleConv, "ExtResNetBlock": ExtResNetBlock}[basic_module]
+            modules = {"DoubleConv": DoubleConv, "ExtResNetBlock": ExtResNetBlock}
+            if basic_module not in modules:
+                raise ValueError(f"Unsupported basic_module '{basic_module}', expected {' or '.join(modules)}")
+            basic_module = modules[basic_module]
         if isinstance(f_maps, int):
             f_maps = number_of_features_per_level(init_channel_number=f_maps, num_levels=num_levels)
-        assert isinstance(f_maps, list)
-        assert len(f_maps) > 1, "Required at least 2 levels"
+        if len(f_maps) < 2:
+            raise ValueError("The network needs at least 2 levels (num_levels)")
 
         self.encoders = create_encoders(
             in_channels=in_channels,

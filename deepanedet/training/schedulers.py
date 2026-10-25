@@ -77,11 +77,8 @@ class Poly(LearningRateScheduler):
 class WarmupScheduler(LearningRateScheduler):
     def __init__(self, optimizer, min_lr: float, max_lr: float, warmup_steps: int, after_warmup_scheduler=None):
         super(WarmupScheduler, self).__init__(optimizer)
-        assert (
-            after_warmup_scheduler is None
-            or isinstance(after_warmup_scheduler, ReduceLROnPlateau)
-            or isinstance(after_warmup_scheduler, Poly)
-        ), f"{after_warmup_scheduler} is not supported after Warmup steps"
+        if not (after_warmup_scheduler is None or isinstance(after_warmup_scheduler, (ReduceLROnPlateau, Poly))):
+            raise TypeError(f"{after_warmup_scheduler} is not supported after the warmup")
         self.warmup_steps = warmup_steps
         self.update_steps = 0
         Wscheduler = WarmupLRScheduler(optimizer=optimizer, min_lr=min_lr, max_lr=max_lr, warmup_steps=warmup_steps)
