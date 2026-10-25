@@ -13,6 +13,8 @@ from deepanedet.training.batch_sampler import BalancedBatchSampler
 
 logger = get_logger("Dataset")
 
+MAX_PATCH_ATTEMPTS = 100  # augmentations drawn for a patch until its aneurysms are wholly inside or outside it
+
 
 def get_dataloaders(train_db, valid_db, cfg):
     """
@@ -125,10 +127,9 @@ class Dataset(torch.utils.data.Dataset):
         of transformation parameters to use based on the value of p['status']. If p['status']
         is True, it uses the positive transformation parameters; otherwise, it uses the negative
         transformation parameters.
-        An infinite loop is used to make sure that the augmented aneurysm points are fullt included
-        inside the patch volume and maintains a 1.2mm distance from the borders (see get_patch_and_aneurysms).
-        If the points are not fully covered inside the patch, new random transformations are
-        generated using the generate_transforms.
+        Random transformations (generate_transforms) are drawn again, up to MAX_PATCH_ATTEMPTS times, until no
+        aneurysm straddles the patch border (see get_patch_and_aneurysms). Without augmentation, the patch is kept
+        as it is: the straddling aneurysms are then left out of its targets.
         Once it has generated a fully-covered aneurysm, the method applies a random flip to the
         volume and associated aneurysms using the random_flip function.
         Finally, a list of targets for each scale is generated using the get_truth_from_aneurysms
@@ -142,8 +143,8 @@ class Dataset(torch.utils.data.Dataset):
             trans, rot, scal, dispc = self.pos_trans, self.pos_rot, self.pos_scal, self.pos_disp
         else:
             trans, scal, rot, dispc = self.neg_trans, self.neg_scal, self.neg_rot, self.neg_disp
-        repeat_patch_gen = True
-        while repeat_patch_gen:
+        augmented = any(amplitude is not None for amplitude in (trans, rot, scal, dispc))
+        for _ in range(MAX_PATCH_ATTEMPTS):
             affine, disp = generate_transforms(trans=trans, scal=scal, rot=rot, center=p["point"], disp=dispc)
             patch_data = get_patch_and_aneurysms(
                 vol=p["data"],
@@ -156,7 +157,13 @@ class Dataset(torch.utils.data.Dataset):
                 disp=disp,
             )
             v, aneurysms, fully_covered = patch_data["volume"], patch_data["aneurysms"], patch_data["fully_covered"]
-            repeat_patch_gen = not fully_covered
+            if fully_covered or not augmented:  # without augmentation, every attempt gives the same patch
+                break
+        else:
+            raise RuntimeError(
+                f"No augmentation of the patch centered at {p['point']} keeps every aneurysm wholly inside or outside it "
+                f"after {MAX_PATCH_ATTEMPTS} attempts"
+            )
         v, aneurysms = random_flip(
             data=[v, aneurysms], axes=self.flip_axis, patch_shape=self.dim, flip_probability=self.flip_prob
         )
