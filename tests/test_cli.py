@@ -55,7 +55,7 @@ def test_train_config_defaults_match_the_paper_setup(tmp_path):
 
     assert cfg.data.work_dir == f"{tmp_path}/0Work"
     assert list(cfg.data.patch_shape) == [96, 96, 96] and list(cfg.data.patch_size) == [38.4, 38.4, 38.4]
-    assert (cfg.loss, cfg.model.params_per_element, cfg.anchors) == ("YOLO_Loss", 4, None)
+    assert cfg.loss == "YOLO_Loss"
     assert (cfg.optimizer.lr, cfg.optimizer.momentum, cfg.scheduler.name) == (1e-2, 0.98, "WarmupPoly")
     assert cfg.augmentation.positive.duplicates == 50
 
@@ -68,14 +68,6 @@ def write_patient(patient, aneurysm):
     pd.DataFrame([[8.0, 8, 8], [30.0, 30, 30]], columns=["x", "y", "z"]).to_csv(patient / "points.csv")
     if aneurysm:
         (patient / "aneurysms.csv").write_text("x,y,z\n20,20,20\n22,20,20\n")
-
-
-def test_anchors_must_match_the_model(tmp_path):
-    result = run_command(
-        "train", f"data_dir={tmp_path}", "name=exp", "data.split_file=split.json", "anchors=[0.05,0.1]"
-    )
-
-    assert result.returncode != 0 and "anchors_per_scale" in result.stderr
 
 
 def test_train_predict_and_evaluate_from_a_relative_split(tmp_path):

@@ -38,57 +38,24 @@ class DetectionHead(nn.Module):
     where in_channels is the number of input channels, and height, width, and depth are the spatial dimensions
     of the input tensor.
     The module has the following attributes:
-        - params_per_element: an integer that specifies the number of parameters for each object detection element
-        (e.g. the x-coordinate, y-coordinate, z-coordinate, width, height, depth, and confidence score)
         - block: a DoubleConv module that applies two convolutional layers to the input tensor and downsamples the spatial dimensions by a factor of 2
         - conv_confidence: a convolutional layer that outputs the confidence scores
-        - conv_regression1: a convolutional layer that outputs the regression values for the center coordinates
-        - conv_regression2: a convolutional layer that outputs the regression values for the width, height and depth
+        - conv_regression: a convolutional layer that outputs the sphere center coordinates and radius of each cell
     """
 
-    def __init__(self, in_channels, params_per_box, anchors_per_scale):
+    def __init__(self, in_channels):
         super(DetectionHead, self).__init__()
-        self.params_per_box = params_per_box
         self.pred = nn.Sequential(
             CNNBlock(in_channels, in_channels // 2, kernel_size=3, padding=1),
             CNNBlock(in_channels // 2, in_channels // 2, kernel_size=3, padding=1),
         )
-        self.anchors_per_scale = anchors_per_scale
-        self.params_per_box = params_per_box
-
-        self.conv_confidence = nn.Conv3d(in_channels // 2, 1 * self.anchors_per_scale, kernel_size=1, bias=True)
-        self.conv_regression = nn.Conv3d(
-            in_channels // 2, params_per_box * self.anchors_per_scale, kernel_size=1, bias=True
-        )
+        self.conv_confidence = nn.Conv3d(in_channels // 2, 1, kernel_size=1, bias=True)
+        self.conv_regression = nn.Conv3d(in_channels // 2, 4, kernel_size=1, bias=True)  # center (3), radius (1)
 
     def forward(self, x):
         x = self.pred(x)
-        if self.anchors_per_scale == 1:
-            x1 = (
-                self.conv_confidence(x)
-                .reshape(x.shape[0], 1, x.shape[2], x.shape[3], x.shape[4])
-                .permute(0, 2, 3, 4, 1)
-                .contiguous()
-            )  # confidence
-            x2 = (
-                self.conv_regression(x)
-                .reshape(x.shape[0], self.params_per_box, x.shape[2], x.shape[3], x.shape[4])
-                .permute(0, 2, 3, 4, 1)
-                .contiguous()
-            )  # regression parameters
-        else:
-            x1 = (
-                self.conv_confidence(x)
-                .reshape(x.shape[0], self.anchors_per_scale, 1, x.shape[2], x.shape[3], x.shape[4])
-                .permute(0, 1, 3, 4, 5, 2)
-                .contiguous()
-            )  # confidence
-            x2 = (
-                self.conv_regression(x)
-                .reshape(x.shape[0], self.anchors_per_scale, self.params_per_box, x.shape[2], x.shape[3], x.shape[4])
-                .permute(0, 1, 3, 4, 5, 2)
-                .contiguous()
-            )  # regression parameters
+        x1 = self.conv_confidence(x).permute(0, 2, 3, 4, 1).contiguous()  # confidence
+        x2 = self.conv_regression(x).permute(0, 2, 3, 4, 1).contiguous()  # sphere center and radius
         return [x1, x2]
 
 
@@ -112,8 +79,6 @@ class AssisModel(nn.Module):
         pool_kernel_size=2,
         conv_padding=1,
         basic_module=DoubleConv,
-        params_per_element=4,
-        anchors_per_scale=1,
         nb_scales=1,
     ):
         super(AssisModel, self).__init__()
@@ -135,10 +100,7 @@ class AssisModel(nn.Module):
             pool_type=pool_type,
         )
         self.ScaleDetections = nn.ModuleList(
-            [
-                DetectionHead(in_channels=i, params_per_box=params_per_element, anchors_per_scale=anchors_per_scale)
-                for i in list(reversed(f_maps[-nb_scales:]))
-            ]
+            [DetectionHead(in_channels=i) for i in list(reversed(f_maps[-nb_scales:]))]
         )
 
     def forward(self, x):

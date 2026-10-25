@@ -36,7 +36,6 @@ def train(patient_db, tmp_path):
             max_num_epochs=cfg.epochs,
             save_every=cfg.save_every,
             warmup_epochs=warmup_epochs,
-            scales=[2],
             mixed_precision=cfg.mixed_precision,
         )
         trainer.fit()

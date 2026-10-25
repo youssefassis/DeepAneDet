@@ -170,7 +170,6 @@ def ndl_patch_wise_prediction(
     batch_size=1,
     patient_name="",
     S=None,
-    anchors=None,
 ):
     torch.cuda.empty_cache()
     image_shape = np.array(data.shape)
@@ -184,15 +183,6 @@ def ndl_patch_wise_prediction(
     start = overflow // 2
     indices = np.mgrid[: n_idx[0], : n_idx[1], : n_idx[2]].reshape((3, -1)).T
     indices = indices * delta + start
-
-    ######################################################################################################################################################################
-    scaled_anchors = (
-        torch.tensor(anchors).reshape(len(S), len(anchors), 1)
-        * torch.tensor(S).unsqueeze(1).unsqueeze(1).repeat(1, len(anchors), 1)
-        if anchors
-        else None
-    )
-    ######################################################################################################################################################################
 
     total_batches = int(math.ceil(indices.shape[0] / batch_size))
     loop = tqdm(range(0, indices.shape[0], batch_size), colour="GREEN", leave=True, unit="batch", total=total_batches)
@@ -213,18 +203,9 @@ def ndl_patch_wise_prediction(
         spheres = torch.cat((spheres[0][1], spheres[0][0]), -1).to(
             "cpu"
         )  # first scale only: [x, y, z, radius, confidence]
-        anchor = scaled_anchors[0] if scaled_anchors is not None else None
 
         for patch_spheres, origin in zip(spheres, idx):  # each patch of the batch
-            boxes = cells_to_spheres(
-                predictions=patch_spheres,
-                obj_thresh=0.01,
-                anchors=anchor,
-                input_shape=list(batch.shape[-3:]),
-                exp_radius=True,
-                is_pred=True,
-                criteria=None,
-            )  # or "boxes"
+            boxes = cells_to_spheres(patch_spheres, obj_thresh=0.01, input_shape=list(batch.shape[-3:]))
 
             # filter boxes/ patch borders: according to detection center
             boxes = [
@@ -270,7 +251,6 @@ def ndl_run_validation_case(
     detections_per_patch,
     patient_wise_tta,
     S=None,
-    anchors=None,
 ):
     """
     Runs a test case and writes predicted images to file.
@@ -303,7 +283,6 @@ def ndl_run_validation_case(
         batch_size=batch_size,
         patient_name=patient_name,
         S=S,
-        anchors=anchors,
         iou_threshold=iou_threshold,
         detections_per_patch=detections_per_patch,
     )
@@ -327,7 +306,6 @@ def ndl_run_validation_case(
                 batch_size=batch_size,
                 patient_name=patient_name,
                 S=S,
-                anchors=anchors,
                 iou_threshold=iou_threshold,
                 detections_per_patch=detections_per_patch,
             )
@@ -357,7 +335,6 @@ def ndl_run_validation_cases(
     mirror_axes=[0],
     do_tta=False,
     scales=[12],
-    anchors=None,
     iou_threshold=0.01,
     detections_per_patch=None,
 ):
@@ -401,7 +378,6 @@ def ndl_run_validation_cases(
                 mirror_axes=mirror_axes,
                 patient_wise_tta=do_tta,
                 S=scales,
-                anchors=anchors,
                 iou_threshold=iou_threshold,
                 detections_per_patch=detections_per_patch,
             )

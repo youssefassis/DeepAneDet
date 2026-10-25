@@ -45,7 +45,6 @@ def main(cfg):
             do_tta=cfg.tta,
             iou_threshold=cfg.iou_threshold,
             scales=[detection_grid_size(train_cfg.data.patch_shape[0], train_cfg.model.num_levels)],
-            anchors=None if train_cfg.anchors is None else list(train_cfg.anchors),
             detections_per_patch=cfg.detections_per_patch,
         )
 
