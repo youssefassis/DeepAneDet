@@ -35,7 +35,7 @@ def main():
     with open(os.path.join(train_dir, "ndl_config.json"), "r") as f:
         config = json.load(f)
     split_file = config["split_file"][0] if isinstance(config["split_file"], list) else config["split_file"]
-    train_pats, val_pats, test_pats = dio.readSplit(split_file, config.get("base_dir"))
+    train_pats, val_pats, test_pats = dio.read_split(split_file, config.get("base_dir"))
     patients = val_pats + test_pats  # predict.py predicts both
     print(len(patients), "patients for test")
 

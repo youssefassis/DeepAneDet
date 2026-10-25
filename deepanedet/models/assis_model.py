@@ -2,7 +2,7 @@ import torch.nn as nn
 from deepanedet.models.building_blocks import number_of_features_per_level, create_encoders, DoubleConv
 
 
-def createBN(in_channels, eps=1e-5, affine=True):
+def create_bn(in_channels, eps=1e-5, affine=True):
     """
     This function creates a batch normalization layer using PyTorch nn.BatchNorm3d module.
     It takes in the number of input channels and two arguments:

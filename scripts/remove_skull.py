@@ -13,7 +13,7 @@ def remove_skull(patient_dir):
     ni_vol = ni.load(os.path.join(patient_dir, d["init volume"]))
     vol = np.asarray(ni_vol.dataobj).astype(np.float32)
 
-    mask = vs.removeSkullMask(vol)
+    mask = vs.remove_skull_mask(vol)
     vol = mask * vol
     vol /= np.max(vol)
 

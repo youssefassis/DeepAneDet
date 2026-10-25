@@ -46,7 +46,7 @@ def test_extract_points_writes_vessel_and_parenchyma_points(patient_dir, monkeyp
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
 
-    dio.extractPointsFromPatient(str(patient_dir), r=5, nbPoints=5)
+    dio.extract_points_from_patient(str(patient_dir), r=5, nb_points=5)
 
     assert list(elsewhere.iterdir()) == [] and os.getcwd() == str(elsewhere)
 
@@ -58,7 +58,7 @@ def test_extract_points_writes_vessel_and_parenchyma_points(patient_dir, monkeyp
 def test_extract_points_for_a_patient_without_aneurysm(patient_dir):
     (patient_dir / "aneurysms.csv").unlink()
 
-    dio.extractPointsFromPatient(str(patient_dir), r=5, nbPoints=5)
+    dio.extract_points_from_patient(str(patient_dir), r=5, nb_points=5)
 
     assert set(pd.read_csv(patient_dir / "points.csv")["type"]) == {"Vessel", "Parenchyma"}
 
@@ -119,10 +119,10 @@ def test_save_split_updates_an_existing_file(tmp_path):
     split = tmp_path / "fold1.json"
     split.write_text(json.dumps({"comment": "kept"}))
 
-    dio.saveSplit(str(split), ["P0001"], ["P0002"], ["P0003"])
+    dio.save_split(str(split), ["P0001"], ["P0002"], ["P0003"])
 
     assert json.loads(split.read_text())["comment"] == "kept"
-    assert dio.readSplit(str(split)) == (["P0001"], ["P0002"], ["P0003"])
+    assert dio.read_split(str(split)) == (["P0001"], ["P0002"], ["P0003"])
 
 
 def test_save_split_reports_a_corrupt_file(tmp_path):
@@ -130,7 +130,7 @@ def test_save_split_reports_a_corrupt_file(tmp_path):
     split.write_text("{")
 
     with pytest.raises(json.JSONDecodeError):
-        dio.saveSplit(str(split), [], [], [])
+        dio.save_split(str(split), [], [], [])
 
 
 def test_generate_masks_of_a_patient_without_aneurysm_is_empty(tmp_path):
@@ -152,4 +152,4 @@ def test_relative_split_entries_are_taken_from_the_data_folder(tmp_path):
         json.dumps({"training list": ["sub-001/ses-1"], "validation list": [], "testing list": ["/abs/P0001"]})
     )
 
-    assert dio.readSplit(str(split), "/data") == (["/data/sub-001/ses-1"], [], ["/abs/P0001"])
+    assert dio.read_split(str(split), "/data") == (["/data/sub-001/ses-1"], [], ["/abs/P0001"])

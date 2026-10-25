@@ -3,11 +3,11 @@ import sys
 import torch
 
 from deepanedet.utils import get_optimizer_scheduler, get_model, load_training_config
-from deepanedet.data.io import add_points_to_patient_data, readSplit, read_patient_data_base
+from deepanedet.data.io import add_points_to_patient_data, read_split, read_patient_data_base
 from deepanedet.training.losses import get_loss_criterion
 
 from deepanedet.training.trainer import create_trainer
-from deepanedet.training.dataset import getDataloaders
+from deepanedet.training.dataset import get_dataloaders
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     workers = min(12, os.cpu_count() or 1)  # data loading processes, at most one per CPU
 
     # Data Preparation
-    train_list, _, _ = readSplit(config["split_file"], config.get("base_dir"))
+    train_list, _, _ = read_split(config["split_file"], config.get("base_dir"))
     valid_list = []
 
     train_db = add_points_to_patient_data(
@@ -53,7 +53,7 @@ def main():
     )
 
     # Data loaders
-    loaders, iterations = getDataloaders(train_db=train_db, valid_db=valid_db, config=config, workers=workers)
+    loaders, iterations = get_dataloaders(train_db=train_db, valid_db=valid_db, config=config, workers=workers)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Model

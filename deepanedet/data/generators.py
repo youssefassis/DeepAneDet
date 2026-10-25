@@ -13,17 +13,17 @@ from deepanedet.utils import get_logger, get_number_of_steps
 logger = get_logger("Generators")
 
 
-def generateTransforms(trans=None, scal=None, rot=None, center=None, disp=None):
+def generate_transforms(trans=None, scal=None, rot=None, center=None, disp=None):
     """
     generate a augmentation transform as a pair of affine,disp (see Patch.getPath function)
     trans: translation amplitude. Can be a 3-vector (along x,y,z) or a scalar (same amplitude in all directions)
     rot: rotation amplitude (in degrees). Can be a 3-vector (around x,y,z) or a scalar (same angle amplitude around all axes)
     center: if set, center of rotation. Else, center is (0,0,0)
     disp: amplitude for the non-rigid (spline) deformation. Can be a 3-vector (along x,y,z) or a scalar (same amplitude in all directions).
-    Return affine, disp as a pair of transform parameters that can be used as (respectively) affine and disp arguments when calling Patch.getPatch
+    Return affine, disp as a pair of transform parameters that can be used as (respectively) affine and disp arguments when calling get_patch
     If both trans and rot are None, then the returned affine is None
     If disp is None, then the returned disp is None
-    (in compliance with Patch.getPatch default params)
+    (in compliance with get_patch default params)
     returned disp is a 3-tuple of displacements to apply on control points in the x,y and z dimensions. The shape of each tuple is (3,3,3) so that the deformation
     is controlled by a mesh of 3x3x3 control points superimposed on the patch (corners correspond). The returned disp makes sure that no displacement is
     applied on the center point of the patch (disp[:][1,1,1]=0)
@@ -111,11 +111,11 @@ def generate_masks_nii(main_dir, pts_file="F.csv"):
         vol, v2m = dio.read_nii_from_file(volume_name)
         truth_file = os.path.join(patient, pts_file)
         spheres = dio.points_to_spheres(dio.read_points_from_csv(truth_file) if os.path.isfile(truth_file) else None)
-        truth = ved.getTruth(vol=vol, vox2met=v2m, spheres=spheres)
+        truth = ved.get_truth(vol=vol, vox2met=v2m, spheres=spheres)
         dio.save_nii_to_file(os.path.join(patient, "mask_spheres.nii.gz"), truth, v2m)
 
 
-def getPatches(pat_db, dup_ane, batch_size):
+def get_patches(pat_db, dup_ane, batch_size):
     """
     Parameters:
     pat_db: patient data base (with points, as returned by IO.add_points_to_patient_data())

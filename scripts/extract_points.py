@@ -16,7 +16,7 @@ def main():
     )
     args = parser.parse_args()
     for patient_dir in args.patient_dirs:
-        dio.extractPointsFromPatient(patient_dir, truth_file=args.truth_file)
+        dio.extract_points_from_patient(patient_dir, truth_file=args.truth_file)
 
 
 if __name__ == "__main__":

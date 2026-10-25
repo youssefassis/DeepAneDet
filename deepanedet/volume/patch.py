@@ -5,7 +5,7 @@ import scipy.ndimage as sndi
 import scipy.optimize as sopt
 
 
-def invTransPoint(p, center, size, affine=None, disp=None, order=3):
+def inv_trans_point(p, center, size, affine=None, disp=None, order=3):
     """
     This function takes as input a points p (of shape (3,-1)), a center,
     and size parameters defining a cube, and optional affine and deformation
@@ -25,9 +25,9 @@ def invTransPoint(p, center, size, affine=None, disp=None, order=3):
         center = np.asarray(center)
         size = np.asarray(size)
         # determine abscissa relative to the cube
-        minCorner = (center - size / 2).reshape((3, 1))
+        min_corner = (center - size / 2).reshape((3, 1))
         res = ((np.asarray(disp[0].shape) - 1) / size).reshape((3, 1))
-        c = (x - minCorner) * res
+        c = (x - min_corner) * res
 
         # compute non-rigid displacement
         x[0] -= sndi.map_coordinates(disp[0], c, order=order, mode="constant", prefilter=False).ravel()
@@ -36,7 +36,7 @@ def invTransPoint(p, center, size, affine=None, disp=None, order=3):
     return x
 
 
-def _euclideanDist(x, *args):
+def _euclidean_dist(x, *args):
     """
     This function calculates the Euclidean distance between two points in 3D
     space, where the second point is transformed using an affine transformation
@@ -45,7 +45,7 @@ def _euclideanDist(x, *args):
     first point, and a list of arguments args containing the second point p,
     the center and size of a cube center and size, an affine transformation
     affine, and a displacement field disp.
-    The function first uses the invTransPoint function to transform the input
+    The function first uses the inv_trans_point function to transform the input
     points x using the inverse affine transformation and displacement field.
     It then calculates the Euclidean distance between the transformed point
     q and the second point p, and returns the result.
@@ -55,22 +55,22 @@ def _euclideanDist(x, *args):
     size = args[2]
     affine = args[3]
     disp = args[4]
-    q = invTransPoint(x.reshape((3, -1)), center, size, affine, disp)
+    q = inv_trans_point(x.reshape((3, -1)), center, size, affine, disp)
     d = p - q.ravel()
     res = np.sum(d * d)
     return res
 
 
-def transPoint(p, center, size, affine=None, disp=None):
+def trans_point(p, center, size, affine=None, disp=None):
     """
-    apply the composite transform (see Patch.invTransPoint) to a set of points
+    apply the composite transform (see inv_trans_point) to a set of points
     p stored in an 3xN array
     """
     residual = 0
     x = p.copy()
     if disp is not None:
         ores = sopt.minimize(
-            _euclideanDist,
+            _euclidean_dist,
             x.ravel(),
             method="CG",
             options={"disp": False, "maxiter": 3},
@@ -83,7 +83,7 @@ def transPoint(p, center, size, affine=None, disp=None):
     return x.T, residual
 
 
-def getPatchAndAneurysms(vol, vox2met, center, size, dim, aneurysms, affine=None, disp=None):
+def get_patch_and_aneurysms(vol, vox2met, center, size, dim, aneurysms, affine=None, disp=None):
     """
     This function takes a 3D volume (vol) and extracts a patch, of a dimension dim (in voxels),
     around a given center with a given size (in mm) and vox2met transform.
@@ -92,13 +92,13 @@ def getPatchAndAneurysms(vol, vox2met, center, size, dim, aneurysms, affine=None
     entirely inside the patch volume and mainted a distance of 3 voxels from the patch borders
     are stored in kept_points. If any aneurysm is not entirely inside the patch volume, the
     function returns fully_covered as False. The function also computes the residual loss
-    from the _euclideanDist function.
+    from the _euclidean_dist function.
     Finally, the function returns the patch volume, the corresponding vox2met
     transform for the patch, the kept aneurysms coordinates in the patch kept_points,
     whether all aneurysms are fully inside the patch fully_covered, and the residual
     loss if applicable.
     """
-    v, v2m = getPatch(vol, vox2met, center, size, dim, affine, disp)
+    v, v2m = get_patch(vol, vox2met, center, size, dim, affine, disp)
 
     # generate corresponding aneurysm point as truth
     kept_points = np.empty((0, 3), int)
@@ -107,7 +107,7 @@ def getPatchAndAneurysms(vol, vox2met, center, size, dim, aneurysms, affine=None
     loss = 0
     if aneurysms is not None:
         #   apply transform to aneurysms points. Need for transpose since points are stored in (-1,3) array
-        a, loss = transPoint(aneurysms.T, center, size, affine=affine, disp=disp)
+        a, loss = trans_point(aneurysms.T, center, size, affine=affine, disp=disp)
 
         # transform aneurysms coords to voxel space excluding aneurysms located outside the patch volume
         points_vox = (np.linalg.inv(v2m)[:3, :] @ np.vstack((a.T, np.ones(a.shape[0])))).T
@@ -131,7 +131,7 @@ def getPatchAndAneurysms(vol, vox2met, center, size, dim, aneurysms, affine=None
     return {"volume": v, "vox2met": v2m, "aneurysms": kept_points, "fully_covered": not ignore, "residual": loss}
 
 
-def getPatch(vol, vox2met, center, size, dim, affine=None, disp=None):
+def get_patch(vol, vox2met, center, size, dim, affine=None, disp=None):
     """
     Extract a 3D patch from a volume (vol) with faces parallel to some metric (in mm, e.g. RAS) frame coordinate directions.
     vox2met is the 4x4 affine transformation between voxel and metric coordinates (a.k.a. IJKtoRAS transform)
@@ -172,7 +172,7 @@ def getPatch(vol, vox2met, center, size, dim, affine=None, disp=None):
     #   express the points in metric coordinates
     p = trans_patch @ p
     # apply inverse transform
-    p[:3] = invTransPoint(p[:3], center, size, affine, disp)
+    p[:3] = inv_trans_point(p[:3], center, size, affine, disp)
 
     # go back to voxel coordinates in the original volume
     D = np.linalg.inv(vox2met)
