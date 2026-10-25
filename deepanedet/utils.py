@@ -10,7 +10,7 @@ import torch
 
 def load_training_config(train_dir):
     """
-    Reads the ndl_config.json of a training directory (see scripts/prepare.py). Missing scales default to the single
+    Reads the ndl_config.json of a training directory (see deepanedet-prepare). Missing scales default to the single
     detection grid of the deepest encoder level.
     """
     with open(os.path.join(train_dir, "ndl_config.json"), "r") as f:
