@@ -1,5 +1,59 @@
+import subprocess
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
+from hydra import compose, initialize_config_dir
+from omegaconf import OmegaConf
+
+CONFIG_DIR = str(Path(__file__).parents[1] / "deepanedet" / "configs")
+
+# a tiny model trained on CPU on 16-voxel patches of 8 mm, without augmentation
+TINY_TRAINING = [
+    "name=exp",
+    "data.split_file=split.json",
+    "data.patch_shape=[16,16,16]",
+    "data.patch_size=[8,8,8]",
+    "model.f_maps=4",
+    "batch_size=2",
+    "drop_last=false",
+    "negative_patches=50",
+    "num_workers=0",
+    "augmentation.positive.duplicates=2",
+    *[
+        f"augmentation.{kind}.{aug}=null"
+        for kind in ("positive", "negative")
+        for aug in ("shift", "rotation", "distortion")
+    ],
+    "optimizer.momentum=0.9",
+    "optimizer.weight_decay=0",
+    "scheduler.warmup_epochs=1",
+    "scheduler.start_epoch=1",
+    "scheduler.stop_epoch=4",
+]
+
+
+def compose_config(name, overrides=()):
+    with initialize_config_dir(config_dir=CONFIG_DIR, version_base="1.3"):
+        return compose(config_name=name, overrides=list(overrides))
+
+
+def save_training_config(train_dir, cfg, launch_dir):
+    """Writes the .hydra folder of a training launched from launch_dir, as deepanedet-train does"""
+    (train_dir / ".hydra").mkdir(parents=True, exist_ok=True)
+    OmegaConf.save(cfg, train_dir / ".hydra" / "config.yaml")
+    OmegaConf.save({"hydra": {"runtime": {"cwd": str(launch_dir)}}}, train_dir / ".hydra" / "hydra.yaml")
+
+
+def run_command(module, *overrides, **kwargs):
+    """Runs a deepanedet.cli module as its installed command does"""
+    return subprocess.run(
+        [sys.executable, "-m", f"deepanedet.cli.{module}", *map(str, overrides)],
+        capture_output=True,
+        text=True,
+        **kwargs,
+    )
 
 
 @pytest.fixture
@@ -19,31 +73,6 @@ def patient_db():
 
 
 @pytest.fixture
-def training_config():
-    """Smallest ndl_config.json used for training: 16-voxel patches of 8mm, without augmentation."""
-    return {
-        "patch_shape": [16, 16, 16],
-        "patch_size": [0.5, 0.5, 0.5],
-        "scales": [2],
-        "num parameters": 4,
-        "batch_size": 2,
-        "validation_batch_size": 2,
-        "balancedbatch": True,
-        "drop_last": False,
-        "positive duplicates": 2,
-        "nb neg patches per patient": None,
-        "percentage of negative patches": 50,
-        "flip probability": 0.5,
-        "flip axes": [0],
-        **{
-            f"{kind} sample {aug}": None
-            for kind in ("positive", "negative")
-            for aug in ("shift", "rotation", "distortion", "scaling")
-        },
-    }
-
-
-@pytest.fixture
 def evaluation_fold(tmp_path):
     """
     A trained fold ready for evaluation: two test patients, each with a 4mm aneurysm (aneurysms.csv) and two
@@ -53,7 +82,8 @@ def evaluation_fold(tmp_path):
     import json
 
     data = tmp_path / "Data"
-    predictions_dir = tmp_path / "Work" / "Fold1" / "Predictions" / "10_epochs"
+    train_dir = data / "0Work" / "fold1"
+    predictions_dir = train_dir / "prediction" / "10_epochs"
     predictions_dir.mkdir(parents=True)
     patients = []
     for name, has_aneurysm in (("P0001", True), ("P0002", True), ("P0003", False)):
@@ -64,11 +94,10 @@ def evaluation_fold(tmp_path):
             (patient / "aneurysms.csv").write_text("x,y,z\n-2,0,0\n2,0,0\n")  # center (0,0,0), radius 2
             detections["1"] = {"center": [0.5, 0.0, 0.0], "radius": 2.0, "confidence": 0.9}
         (predictions_dir / f"{name}.json").write_text(json.dumps(detections))
-        patients.append(str(patient))
+        patients.append(name)
 
-    split_file = tmp_path / "fold1.json"
     split = {"training list": [], "validation list": patients[:1], "testing list": patients[1:]}
-    split_file.write_text(json.dumps(split))
-    config = {"split_file": str(split_file), "truth file": "aneurysms.csv"}
-    (tmp_path / "Work" / "Fold1" / "ndl_config.json").write_text(json.dumps(config))
-    return tmp_path / "Work" / "Fold1", predictions_dir
+    (tmp_path / "fold1.json").write_text(json.dumps(split))
+    cfg = compose_config("train", ["data_dir=Data", "data.split_file=fold1.json", "name=fold1"])
+    save_training_config(train_dir, cfg, launch_dir=tmp_path)
+    return train_dir, predictions_dir

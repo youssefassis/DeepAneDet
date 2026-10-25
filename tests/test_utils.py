@@ -1,23 +1,19 @@
-import json
-
 import pytest
 
 from deepanedet.utils import load_training_config
 
-
-@pytest.mark.parametrize("stored", [{}, {"scales": None}])
-def test_training_config_defaults_to_the_grid_of_the_deepest_level(tmp_path, stored):
-    (tmp_path / "ndl_config.json").write_text(json.dumps({"patch_shape": [96, 96, 96], "depth": 4, **stored}))
-
-    assert load_training_config(str(tmp_path))["scales"] == [12]
+from conftest import compose_config, save_training_config
 
 
-def test_training_config_keeps_its_scales(tmp_path):
-    (tmp_path / "ndl_config.json").write_text(json.dumps({"patch_shape": [96, 96, 96], "scales": [6]}))
+def test_training_config_paths_are_taken_from_the_launch_folder(tmp_path):
+    cfg = compose_config("train", ["data_dir=Data", "data.split_file=reproducibility/fold1.json", "name=fold1"])
+    save_training_config(tmp_path / "fold1", cfg, launch_dir="/runs")
 
-    assert load_training_config(str(tmp_path))["scales"] == [6]
+    loaded = load_training_config(str(tmp_path / "fold1"))
+
+    assert (loaded.data.data_dir, loaded.data.split_file) == ("/runs/Data", "/runs/reproducibility/fold1.json")
 
 
 def test_missing_training_config_is_reported(tmp_path):
-    with pytest.raises(FileNotFoundError, match="ndl_config.json"):
+    with pytest.raises(FileNotFoundError, match="deepanedet-train"):
         load_training_config(str(tmp_path))

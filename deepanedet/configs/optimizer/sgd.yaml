@@ -1,0 +1,5 @@
+_target_: torch.optim.SGD
+lr: 1.0e-2              # peak learning rate, reached at the end of the warmup
+momentum: 0.98
+nesterov: true
+weight_decay: 5.0e-4

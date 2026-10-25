@@ -1,0 +1,10 @@
+# Single-stage aneurysm detection network, aneurysms as spheres
+_target_: deepanedet.models.assis_model.AssisModel
+in_channels: 1
+f_maps: 64                       # filters of the first level, doubled at each level
+num_levels: 4                    # the detection grid has patch_shape / 2^(num_levels - 1) cells per side
+layer_order: cbl                 # conv, batchnorm, leaky ReLU
+pool_type: conv                  # strided convolutions (conv) or max pooling (max) between levels
+basic_module: ExtResNetBlock     # ExtResNetBlock or DoubleConv
+params_per_element: 4            # sphere center (3) and radius (1) of each cell; 6 for boxes
+anchors_per_scale: 1             # number of anchors, when the training uses anchors

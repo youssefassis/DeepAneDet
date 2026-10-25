@@ -17,3 +17,7 @@ logs/
 *.nii.gz
 *.npy
 *.npz
+
+# Hydra runs launched without an explicit run directory
+outputs/
+multirun/

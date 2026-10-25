@@ -1,0 +1,14 @@
+# Predicts the validation and testing patients of a training; data and model settings come from its config
+train_dir: ???                       # training directory written by deepanedet-train
+checkpoint: last_checkpoint.pytorch
+output_dir: null                     # null: <train_dir>/prediction/<epochs>_epochs, after the checkpoint's epochs
+margin: 16                           # voxels discarded at each patch border when stitching predictions
+tta: true                            # test-time augmentation: merge the predictions of mirrored volumes
+mirror_axes: [0, 1, 2]
+iou_threshold: 0.01                  # overlapping detections above this IoU are merged
+detections_per_patch: null           # keep the most confident ones only; null keeps all
+batch_size: 1
+
+hydra:
+  run:
+    dir: ${train_dir}/prediction

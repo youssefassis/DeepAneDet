@@ -1,0 +1,6 @@
+# Linear warmup over the first epochs, then polynomial decay (see deepanedet.utils.create_lr_scheduler)
+name: WarmupPoly        # WarmupPoly, Warmup, Poly, ReduceLROnPlateau, WarmupPlateau or null
+warmup_epochs: 3        # the learning rate rises from 1e-8 to the optimizer's lr, batch by batch
+start_epoch: 50         # epoch the polynomial decay starts at
+stop_epoch: 200         # epoch the learning rate reaches min_lr
+min_lr: 1.0e-4

@@ -1,12 +1,21 @@
-import argparse
-import os
+"""Skull-strip every patient volume; configuration in deepanedet/configs/remove_skull.yaml.
+
+Example: deepanedet-remove-skull data_dir=/data
+The result is saved next to each volume and registered as 'noskull volume' in the patient's config.json.
+"""
+
 import json
-import numpy as np
+import os
+
+import hydra
 import nibabel as ni
+import numpy as np
+
+from deepanedet.data import io as dio
 from deepanedet.volume import selection as vs
 
 
-def remove_skull(patient_dir):
+def remove_skull(patient_dir, output_name):
     config_file = os.path.join(patient_dir, "config.json")
     with open(config_file, "r") as f:
         d = json.load(f)
@@ -17,22 +26,17 @@ def remove_skull(patient_dir):
     vol = mask * vol
     vol /= np.max(vol)
 
-    outname = "noskull.nii.gz"
-    ni.Nifti1Image(vol, ni_vol.affine).to_filename(os.path.join(patient_dir, outname))
-    d["noskull volume"] = outname
+    ni.Nifti1Image(vol, ni_vol.affine).to_filename(os.path.join(patient_dir, output_name))
+    d["noskull volume"] = output_name
     with open(config_file, "w") as f:
         json.dump(d, f, indent=2)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Writes the brain volume (without skull) of each patient directory as "
-        "noskull.nii.gz, recorded in its config.json under 'noskull volume'."
-    )
-    parser.add_argument("patient_dirs", nargs="+", help="e.g. path/to/Data_dir/P* or path/to/Data_dir/sub-*/ses-*")
-    for patient_dir in parser.parse_args().patient_dirs:
+@hydra.main(version_base="1.3", config_path="../configs", config_name="remove_skull")
+def main(cfg):
+    for patient_dir in dio.fetch_patient_dirs(cfg.data.data_dir):
         print(f"Removing the skull of {patient_dir}")
-        remove_skull(patient_dir)
+        remove_skull(patient_dir, cfg.output)
 
 
 if __name__ == "__main__":

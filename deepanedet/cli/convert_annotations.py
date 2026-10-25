@@ -1,16 +1,16 @@
-"""
-Writes the aneurysm annotations of reproducibility/annotations (one sub-XXX_ses-YYYYMMDD.json per patient, each
-aneurysm given by its points P1 and P2) as the truth file read for training and evaluation: a CSV of x, y, z point
-pairs in each patient directory <data_dir>/sub-XXX/ses-YYYYMMDD.
-Patients without an annotation file have no aneurysm and get no truth file.
+"""Write the annotations of the public dataset as truth files; configuration in deepanedet/configs/convert_annotations.yaml.
 
-Usage: deepanedet-convert-annotations path/to/reproducibility/annotations path/to/Data_dir [truth file name, aneurysms.csv by default]
+Example: deepanedet-convert-annotations annotations_dir=reproducibility/annotations data_dir=/data
+The annotations (one sub-XXX_ses-YYYYMMDD.json per patient, each aneurysm given by its points P1 and P2) become the
+truth file read for training and evaluation: a CSV of x, y, z point pairs in each patient directory
+<data_dir>/sub-XXX/ses-YYYYMMDD. Patients without an annotation file have no aneurysm and get no truth file.
 """
 
 import glob
 import json
 import os
-import sys
+
+import hydra
 import pandas as pd
 
 
@@ -40,12 +40,11 @@ def convert_annotations(annotations_dir, data_dir, truth_file="aneurysms.csv"):
     return missing
 
 
-def main():
-    if len(sys.argv) not in (3, 4):
-        sys.exit(f"Usage: {sys.argv[0]} path/to/reproducibility/annotations path/to/Data_dir [truth file name]")
-    missing = convert_annotations(*sys.argv[1:])
+@hydra.main(version_base="1.3", config_path="../configs", config_name="convert_annotations")
+def main(cfg):
+    missing = convert_annotations(cfg.annotations_dir, cfg.data.data_dir, cfg.output)
     if missing:
-        print(f"{len(missing)} annotated patients not found in {sys.argv[2]}: {', '.join(missing)}")
+        print(f"{len(missing)} annotated patients not found in {cfg.data.data_dir}: {', '.join(missing)}")
 
 
 if __name__ == "__main__":

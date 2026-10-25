@@ -1,0 +1,10 @@
+# Patient data and patch geometry
+data_dir: ${data_dir}                    # directory containing the patient folders (P???? or sub-*/ses-*)
+work_dir: ${.data_dir}/0Work             # trainings and logs are written here
+split_file: ???                          # training/validation/testing patients, e.g. reproducibility/fold1.json
+volume: init volume                      # key, in each patient's config.json, of the volume to train on
+normalize: Normal                        # Normal (zero mean, unit variance), Linear (rescale to [0, 1]) or null
+truth_file: aneurysms.csv                # aneurysm points (P1, P2 pairs) in each patient folder
+negative_patch_centers: points.csv       # written by deepanedet-extract-points in each patient folder
+patch_shape: [96, 96, 96]                # patch dimension, in voxels
+patch_size: [38.4, 38.4, 38.4]           # patch size, in mm (resolution = patch_size / patch_shape)

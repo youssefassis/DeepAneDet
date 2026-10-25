@@ -1,23 +1,29 @@
-import json
 import logging
 import math
 import os
-import sys
 import shutil
+
 import numpy as np
 import torch
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
+
+from deepanedet.training.schedulers import LearningRateScheduler
 
 
 def load_training_config(train_dir):
     """
-    Reads the ndl_config.json of a training directory (see deepanedet-prepare). Missing scales default to the single
-    detection grid of the deepest encoder level.
+    Reads the resolved configuration of a training (<train_dir>/.hydra, written by deepanedet-train), with its data
+    folder and split file made absolute from the folder the training was launched in.
     """
-    with open(os.path.join(train_dir, "ndl_config.json"), "r") as f:
-        config = json.load(f)
-    if config.get("scales") is None:
-        config["scales"] = [detection_grid_size(config["patch_shape"][0], config["depth"])]
-    return config
+    hydra_dir = os.path.join(train_dir, ".hydra")
+    if not os.path.isfile(os.path.join(hydra_dir, "config.yaml")):
+        raise FileNotFoundError(f"No training configuration in {hydra_dir}; is {train_dir} a deepanedet-train folder?")
+    cfg = OmegaConf.load(os.path.join(hydra_dir, "config.yaml"))
+    launch_dir = OmegaConf.load(os.path.join(hydra_dir, "hydra.yaml")).hydra.runtime.cwd
+    cfg.data.data_dir = os.path.join(launch_dir, cfg.data.data_dir)
+    cfg.data.split_file = os.path.join(launch_dir, cfg.data.split_file)
+    return cfg
 
 
 def detection_grid_size(patch_shape, depth):
@@ -25,11 +31,16 @@ def detection_grid_size(patch_shape, depth):
     return math.ceil(patch_shape / 2 ** (depth - 1))
 
 
-def get_model(config, default_init="He", device="cpu"):
+def get_model(model_cfg, weight_init="he", device="cpu"):
+    """
+    Instantiates the model described by model_cfg (a Hydra config with a _target_ class, see configs/model).
+    weight_init: "he" (Kaiming normal, as in the paper) or "pytorch" (PyTorch defaults)
+    """
     logger = get_logger("Model")
-
-    # select adequate model
-    model = select_model(config, logger)
+    if weight_init not in ("he", "pytorch"):
+        raise ValueError(f"Unsupported weight_init '{weight_init}', expected 'he' or 'pytorch'")
+    model = instantiate(model_cfg, _convert_="all")
+    logger.info(f"The model '{type(model).__name__}' is selected")
 
     # model properties
     nparams = get_number_of_learnable_parameters(model)
@@ -40,65 +51,20 @@ def get_model(config, default_init="He", device="cpu"):
     logger.info(f"Number of learnable params {nparams}")
     logger.info(f"Size allocated by the model is {size:.2f} MB")
 
-    # Model weights initialization
-    if default_init == "He":
-        logger.info("Apply He/Kaiming (Keras) weight initialization")
+    if weight_init == "he":
+        logger.info("Apply He/Kaiming weight initialization")
         initialize_weights(model)
     else:
-        logger.info("Apply Xavier (default PyTroch) weight initialization")
+        logger.info("Apply PyTorch default weight initialization")
 
-    # Send model to device
     logger.info(f"Sending the model to '{device}'")
     return model.to(device)
 
 
-def select_model(config, logger):
-    # Instantiate the model
-    if config["model"] == "ASSIS":
-        from deepanedet.models.assis_model import AssisModel
-        from deepanedet.models.building_blocks import DoubleConv, ExtResNetBlock
-
-        basic_module = (
-            ExtResNetBlock if "basic_module" in config and config["basic_module"] == "ExtResNetBlock" else DoubleConv
-        )
-        params_per_box = config["num parameters"] if "num parameters" in config else 4
-        anchors_per_scale = len(config["anchors"]) if "anchors" in config else 1
-
-        model = AssisModel(
-            in_channels=config["in_channels"],  # out_channels=config['out_channels'],
-            f_maps=config["n_base_filters"],
-            layer_order=config["layer_order"],
-            pool_type="conv",
-            num_levels=config["depth"],
-            basic_module=basic_module,
-            conv_kernel_size=3,
-            pool_kernel_size=2,
-            conv_padding=1,
-            params_per_element=params_per_box,
-            nb_scales=len(config["scales"]),
-            anchors_per_scale=anchors_per_scale,
-        )
-
-    else:
-        raise ValueError(f"Unsupported model '{config['model']}'")
-    logger.info(f"The model '{config['model']}' is selected")
-    return model
-
-
-def load_model(config, device="cpu", last=False):
-    """Instansiate and load the appropriate (Last or Best) model weights
-    And move the model to the specified device"""
-    # Instantiate model
-    model = get_model(config, device=device)
-    if last is None:
-        return model, 0
-
-    if not os.path.exists(config["model_file"]):
-        raise IOError(f"Checkpoint '{config['model_file']}' does not exist")
-
-    # load pre-trained weights
-    checkpoint = config["model_file"] if last else config["model_file"].replace("last", "best")
-    state = load_checkpoint(checkpoint, model)
+def load_model(model_cfg, checkpoint_path, device="cpu"):
+    """Builds the model described by model_cfg and loads its weights; returns it with its number of trained epochs"""
+    model = get_model(model_cfg, device=device)
+    state = load_checkpoint(checkpoint_path, model)
     return model, state["epoch"]
 
 
@@ -157,91 +123,55 @@ def load_checkpoint(
     return state
 
 
-def get_optimizer_scheduler(model, config, warmup_steps):
+def create_lr_scheduler(optimizer, config, epochs, warmup_steps=0):
     """
-    Returns the optimizer and the LR scheduler
+    Creates the learning rate scheduler described by config (see configs/scheduler), whose name is one of None,
+    ReduceLROnPlateau, Poly, Warmup, WarmupPlateau or WarmupPoly. The optimizer's learning rate is the peak one:
+    warmup schedulers start from 1e-8 and raise it over warmup_steps batches.
     """
-    optimizer = create_optimizer(model=model, config=config)
-    scheduler = create_lr_scheduler(optimizer=optimizer, config=config, warmup_steps=warmup_steps)
-    return optimizer, scheduler
-
-
-def create_optimizer(model, config):
-    """
-    Creates the learning optimizer
-    """
-    logger = get_logger("Optimizer")
-    optim = config["optimizer"] if "optimizer" in config else "Adam"
-    assert optim in ["Adam", "SGD"]
-
-    weight_decay = config["weight_decay"]
-    learning_rate = (
-        1e-8 if str(config["lr"]).startswith("Warmup") else config["initial_learning_rate"]
-    )  # warmup schedulers raise it
-
-    if optim == "Adam":
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay, amsgrad=True)
-        op = optimizer.state_dict()["param_groups"][0]
-        logger.info(
-            f"{optim} : lr = {op['lr']}; betas = {op['betas']}; eps = {op['eps']}; weight_decay = {op['weight_decay']}; amsgrad = {op['amsgrad']}"
-        )
-    elif optim == "SGD":
-        optimizer = torch.optim.SGD(
-            model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=config["momentum"], nesterov=True
-        )
-        op = optimizer.state_dict()["param_groups"][0]
-        logger.info(
-            f"{optim} : lr = {op['lr']}; momentum = {op['momentum']}; weight_decay = {op['weight_decay']}; nesterov = {op['nesterov']}"
-        )
-    return optimizer
-
-
-def create_lr_scheduler(optimizer, config, warmup_steps=0):
-    """
-    Creates Learning rate scheduler (LR update strategy)
-    """
-    assert config["lr"] in [None, "ReduceLROnPlateau", "Poly", "Warmup", "WarmupPlateau", "WarmupPoly"]
+    assert config["name"] in [None, "ReduceLROnPlateau", "Poly", "Warmup", "WarmupPlateau", "WarmupPoly"]
+    initial_lr = optimizer.param_groups[0]["lr"]
+    if str(config["name"]).startswith("Warmup"):
+        LearningRateScheduler.set_lr(optimizer, 1e-8)
 
     logger = get_logger("Scheduler")
-    if config["lr"] is None:
+    if config["name"] is None:
         scheduler = None
         logger.info("No scheduler specified")
 
-    elif config["lr"] == "Warmup":
+    elif config["name"] == "Warmup":
         from deepanedet.training.schedulers import WarmupLRScheduler
 
         scheduler = WarmupLRScheduler(
             optimizer=optimizer,
             min_lr=config["min_lr"],
-            max_lr=config["initial_learning_rate"],
+            max_lr=initial_lr,
             warmup_steps=warmup_steps,
         )
         logger.info(f"WarmupLR Scheduler: warmup_steps = {warmup_steps}")
 
-    elif config["lr"] == "ReduceLROnPlateau":
+    elif config["name"] == "ReduceLROnPlateau":
         from deepanedet.training.schedulers import ReduceLROnPlateau
 
         factor, patience, wloss = config["factor"], config["patience"], True  # config["wloss"]
         scheduler = ReduceLROnPlateau(optimizer=optimizer, factor=factor, patience=patience, wloss=wloss, start_epoch=0)
         logger.info(f"ReduceLROnPlateau Scheduler: patience={patience}, factor={factor}, wloss={wloss}")
 
-    elif config["lr"] == "Poly":
+    elif config["name"] == "Poly":
         from deepanedet.training.schedulers import Poly
 
         start_epoch = config["start_epoch"]
-        scheduler = Poly(
-            optimizer=optimizer, start_epoch=start_epoch, max_epochs=config["n_epochs"], exponent=0.99, min_lr=1e-4
-        )
-        logger.info(f"Polynomial Scheduler: start_epoch={start_epoch}, max_epochs={config['n_epochs']}")
+        scheduler = Poly(optimizer=optimizer, start_epoch=start_epoch, max_epochs=epochs, exponent=0.99, min_lr=1e-4)
+        logger.info(f"Polynomial Scheduler: start_epoch={start_epoch}, max_epochs={epochs}")
 
-    elif config["lr"] == "WarmupPlateau":
+    elif config["name"] == "WarmupPlateau":
         from deepanedet.training.schedulers import WarmupScheduler, ReduceLROnPlateau
 
         start_epoch = 10
         scheduler = WarmupScheduler(
             optimizer=optimizer,
             min_lr=1e-8,
-            max_lr=config["initial_learning_rate"],
+            max_lr=initial_lr,
             warmup_steps=warmup_steps,
             after_warmup_scheduler=ReduceLROnPlateau(
                 optimizer=optimizer,
@@ -252,9 +182,9 @@ def create_lr_scheduler(optimizer, config, warmup_steps=0):
             ),
         )
         logger.info(
-            f"WarmupPlateau scheduler : lr={config['initial_learning_rate']}, patience={config['patience']}, factor={config['factor']}, start_epoch={start_epoch}"
+            f"WarmupPlateau scheduler : lr={initial_lr}, patience={config['patience']}, factor={config['factor']}, start_epoch={start_epoch}"
         )
-    elif config["lr"] == "WarmupPoly":
+    elif config["name"] == "WarmupPoly":
         from deepanedet.training.schedulers import WarmupScheduler, Poly
 
         start_epoch = config["start_epoch"]
@@ -262,18 +192,18 @@ def create_lr_scheduler(optimizer, config, warmup_steps=0):
         scheduler = WarmupScheduler(
             optimizer=optimizer,
             min_lr=1e-8,
-            max_lr=config["initial_learning_rate"],
+            max_lr=initial_lr,
             warmup_steps=warmup_steps,
             after_warmup_scheduler=Poly(
                 optimizer=optimizer,
                 start_epoch=start_epoch,
-                max_epochs=stop_epoch,  # config["n_epochs"],
+                max_epochs=stop_epoch,
                 exponent=0.9,
                 min_lr=config["min_lr"],
-                initial_lr=config["initial_learning_rate"],
+                initial_lr=initial_lr,
             ),
         )
-        logger.info(f"WarmupPoly scheduler : lr={config['initial_learning_rate']}, start_epoch={start_epoch}")
+        logger.info(f"WarmupPoly scheduler : lr={initial_lr}, start_epoch={start_epoch}")
     return scheduler
 
 
@@ -294,9 +224,7 @@ def get_number_of_steps(n_samples, batch_size):
 
 
 class RunningAverage:
-    """
-    Computes and stores the average (loss and metric scores)
-    """
+    """Computes and stores the average (loss and metric scores)"""
 
     def __init__(self):
         self.count = 0
@@ -319,7 +247,7 @@ def get_number_of_learnable_parameters(model):
 
 def initialize_weights(*models, neg_slope: float = 1e-2):
     """
-    Initialize a model's weights to He initialization
+    Initialize the model weights using Kaiming/He initialization
     """
     for model in models:
         for module in model.modules():
@@ -333,19 +261,8 @@ def initialize_weights(*models, neg_slope: float = 1e-2):
                     module.bias = torch.nn.init.constant_(module.bias, 0)
 
 
-loggers = {}
-
-
 def get_logger(name, level=logging.INFO):
-    global loggers
-    if loggers.get(name) is not None:
-        return loggers[name]
-    else:
-        logger = logging.getLogger(name)
-        logger.setLevel(level)
-        stream_handler = logging.StreamHandler(sys.stdout)
-        formatter = logging.Formatter("%(asctime)s [%(threadName)s] %(levelname)s %(name)s - %(message)s")
-        stream_handler.setFormatter(formatter)
-        logger.addHandler(stream_handler)
-        loggers[name] = logger
-        return logger
+    """Returns a named logger; handlers are left to the application (Hydra configures console and file logs)."""
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    return logger
