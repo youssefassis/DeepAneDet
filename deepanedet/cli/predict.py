@@ -13,7 +13,7 @@ import torch
 
 from deepanedet.data import io as dio
 from deepanedet.inference.prediction import ndl_run_validation_cases
-from deepanedet.utils import detection_grid_size, get_logger, load_model, load_training_config
+from deepanedet.utils import get_logger, load_model, load_training_config
 
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="predict")
@@ -44,7 +44,6 @@ def main(cfg):
             batch_size=cfg.batch_size,
             do_tta=cfg.tta,
             iou_threshold=cfg.iou_threshold,
-            scales=[detection_grid_size(train_cfg.data.patch_shape[0], train_cfg.model.num_levels)],
             detections_per_patch=cfg.detections_per_patch,
         )
 

@@ -18,7 +18,7 @@ class OneDetectionPerPatch(torch.nn.Module):
 def test_patch_wise_prediction_does_not_depend_on_batch_size(batch_size):
     volume = np.zeros((16, 8, 8), dtype=np.float32)  # two 8-voxel patches along x
 
-    _, spheres = prediction.ndl_patch_wise_prediction(
+    spheres = prediction.ndl_patch_wise_prediction(
         "cpu",
         OneDetectionPerPatch(),
         volume,
@@ -30,6 +30,24 @@ def test_patch_wise_prediction_does_not_depend_on_batch_size(batch_size):
 
     # cell centers (offset sigmoid(0) = 0.5 of a 4-voxel cell) in each patch
     assert sorted(s[:3] for s in spheres) == [[2.0, 2.0, 2.0], [10.0, 2.0, 2.0]]
+
+
+def test_detections_are_found_up_to_the_volume_borders():
+    volume = np.zeros((10, 8, 8), dtype=np.float32)  # not a whole number of 6-voxel patch cores
+
+    spheres = prediction.ndl_patch_wise_prediction(
+        "cpu", OneDetectionPerPatch(), volume, [8, 8, 8], iou_threshold=0.01, detections_per_patch=None, margin=1
+    )
+
+    # one detection 1 voxel past the start of each patch core: cores start at 0 and 6 along every axis
+    assert sorted(tuple(s[:3]) for s in spheres) == sorted((x, y, z) for x in (1, 7) for y in (1, 7) for z in (1, 7))
+
+
+def test_a_margin_without_core_is_rejected():
+    with pytest.raises(ValueError, match="no core"):
+        prediction.ndl_patch_wise_prediction(
+            "cpu", OneDetectionPerPatch(), np.zeros((8, 8, 8)), [8, 8, 8], 0.01, None, margin=4
+        )
 
 
 @pytest.mark.parametrize("tta", [False, True])
