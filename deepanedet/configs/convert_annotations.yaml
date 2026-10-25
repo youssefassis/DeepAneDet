@@ -1,0 +1,12 @@
+# Writes the annotations of the public dataset as the truth file of each patient folder
+defaults:
+  - data: default
+  - _self_
+
+data_dir: ???            # the dataset, with its sub-*/ses-* patient folders
+annotations_dir: ???     # reproducibility/annotations
+output: ${data.truth_file}
+
+hydra:
+  run:
+    dir: ${data.work_dir}/logs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}

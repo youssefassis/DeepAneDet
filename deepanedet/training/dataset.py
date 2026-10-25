@@ -1,7 +1,10 @@
-import torch
+import os
 import random
+
 import numpy as np
-from deepanedet.utils import get_logger
+import torch
+
+from deepanedet.utils import detection_grid_size, get_logger
 
 from deepanedet.data.generators import generate_transforms, get_patches
 from deepanedet.data.augmentation import random_flip
@@ -11,56 +14,45 @@ from deepanedet.training.batch_sampler import BalancedBatchSampler
 logger = get_logger("Dataset")
 
 
-def get_dataloaders(train_db, valid_db, config, workers):
+def get_dataloaders(train_db, valid_db, cfg):
     """
-    This function returns PyTorch data loaders for training and validation sets,
-    given the training and validation databases, a configuration dictionary,
-    and the number of worker processes to use.
-    The function first checks whether a training/validation database is provided.
-    If so, it calls the get_patches() function to obtain patches from the database
-    with the specified batch size and positive patch duplicates. Then, it creates
-    a Dataset object with the obtained patches and the other configuration parameters,
-    and creates a PyTorch data loader using either Balanced Batch Sampler or a standard
-    random batch sampler.
+    Returns the training and validation data loaders (None without patients) and their numbers of batches.
+    cfg: training configuration (see configs/train.yaml), providing data.patch_size, data.patch_shape, model.num_levels,
+    model.params_per_element, anchors, augmentation, batch_size, validation_batch_size (with valid_db), balanced_batch,
+    negative_patches, drop_last and num_workers.
+    Training batches hold a fixed share of negative patches with balanced_batch, else are randomly drawn.
     """
+    workers = min(cfg["num_workers"], os.cpu_count() or 1)
+    augmentation = cfg["augmentation"]
+    scales = [detection_grid_size(cfg["data"]["patch_shape"][0], cfg["model"]["num_levels"])]
+
+    def make_dataset(patches):
+        return Dataset(
+            patches=patches,
+            size=list(cfg["data"]["patch_size"]),
+            dim=list(cfg["data"]["patch_shape"]),
+            negative=augmentation["negative"],
+            positive=augmentation["positive"],
+            flip=augmentation["flip"],
+            params=cfg["model"]["params_per_element"],
+            scales=scales,
+            anchors=None if cfg.get("anchors") is None else list(cfg["anchors"]),
+        )
+
     train_generator, train_iterations = None, 0
     valid_generator, valid_iterations = None, 0
 
-    balancedbatch = config["balancedbatch"] if "balancedbatch" in config else False
-    scales = config["scales"]  # if 'scales' in config else None
-    anchors = config["anchors"] if "anchors" in config else None
-
     if train_db is not None:
         train_patches, train_iterations = get_patches(
-            pat_db=train_db, dup_ane=config["positive duplicates"], batch_size=config["batch_size"]
+            pat_db=train_db, dup_ane=augmentation["positive"]["duplicates"], batch_size=cfg["batch_size"]
         )
-
-        train_dataset = Dataset(
-            patches=train_patches,
-            size=[x * y for x, y in zip(config["patch_size"], config["patch_shape"])],
-            dim=config["patch_shape"],
-            neg_trans=config["negative sample shift"],
-            neg_rot=config["negative sample rotation"],
-            neg_disp=config["negative sample distortion"],
-            neg_scal=config["negative sample scaling"],
-            pos_trans=config["positive sample shift"],
-            pos_rot=config["positive sample rotation"],
-            pos_disp=config["positive sample distortion"],
-            pos_scal=config["positive sample scaling"],
-            flip_prob=config["flip probability"],
-            flip_axes=config["flip axes"],
-            params=config["num parameters"],
-            scales=scales,
-            anchors=anchors,
-        )
-
-        if balancedbatch:
+        train_dataset = make_dataset(train_patches)
+        if cfg["balanced_batch"]:
             sampler = BalancedBatchSampler(
                 patches=train_dataset.patches,
-                batch_size=config["batch_size"],
-                nb_negative_samples_per_patient=config["nb neg patches per patient"],
-                percentage_neg_patches=config["percentage of negative patches"],
-                drop_last=config["drop_last"],
+                batch_size=cfg["batch_size"],
+                percentage_neg_patches=cfg["negative_patches"],
+                drop_last=cfg["drop_last"],
             )
             train_iterations = sampler.get_n_batches()
             train_generator = torch.utils.data.DataLoader(
@@ -68,49 +60,25 @@ def get_dataloaders(train_db, valid_db, config, workers):
             )
         else:
             train_generator = torch.utils.data.DataLoader(
-                dataset=train_dataset,
-                batch_size=config["batch_size"],
-                shuffle=True,
-                num_workers=workers,
-                pin_memory=True,
+                dataset=train_dataset, batch_size=cfg["batch_size"], shuffle=True, num_workers=workers, pin_memory=True
             )
-
         logger.info(
-            f"Training DataLoader : ({len(train_patches)} patches; Balanced batch : {balancedbatch}; batch size = {config['batch_size']}; shuffle = {True}; workers = {workers})"
+            f"Training DataLoader : ({len(train_patches)} patches; Balanced batch : {cfg['balanced_batch']}; batch size = {cfg['batch_size']}; workers = {workers})"
         )
 
     if valid_db is not None:
         valid_patches, valid_iterations = get_patches(
-            pat_db=valid_db, dup_ane=config["positive duplicates"], batch_size=config["validation_batch_size"]
-        )
-        valid_dataset = Dataset(
-            patches=valid_patches,
-            size=[x * y for x, y in zip(config["patch_size"], config["patch_shape"])],
-            dim=config["patch_shape"],
-            neg_trans=config["negative sample shift"],
-            neg_rot=config["negative sample rotation"],
-            neg_disp=config["negative sample distortion"],
-            neg_scal=config["negative sample scaling"],
-            pos_trans=config["positive sample shift"],
-            pos_rot=config["positive sample rotation"],
-            pos_disp=config["positive sample distortion"],
-            pos_scal=config["positive sample scaling"],
-            flip_prob=config["flip probability"],
-            flip_axes=config["flip axes"],
-            params=config["num parameters"],
-            scales=scales,
-            anchors=anchors,
+            pat_db=valid_db, dup_ane=augmentation["positive"]["duplicates"], batch_size=cfg["validation_batch_size"]
         )
         valid_generator = torch.utils.data.DataLoader(
-            dataset=valid_dataset,
-            batch_size=config["validation_batch_size"],
+            dataset=make_dataset(valid_patches),
+            batch_size=cfg["validation_batch_size"],
             shuffle=False,
             num_workers=workers,
             pin_memory=True,
         )
-
         logger.info(
-            f"Validation DataLoader : ({len(valid_patches)} patches; Balanced batch : {balancedbatch}; batch size = {config['validation_batch_size']}; shuffle = False; workers = {workers})"
+            f"Validation DataLoader : ({len(valid_patches)} patches; batch size = {cfg['validation_batch_size']}; workers = {workers})"
         )
     return {"train": train_generator, "valid": valid_generator}, {"train": train_iterations, "valid": valid_iterations}
 
@@ -124,32 +92,17 @@ class Dataset(torch.utils.data.Dataset):
     positive and negative patches, and the scales size as a list (e.g. [12]).
     """
 
-    def __init__(
-        self,
-        patches,
-        size,
-        dim,
-        neg_trans,
-        neg_rot,
-        neg_disp,
-        neg_scal,
-        pos_trans,
-        pos_rot,
-        pos_disp,
-        pos_scal,
-        flip_prob,
-        flip_axes,
-        params,
-        scales,
-        anchors,
-    ):
+    def __init__(self, patches, size, dim, negative, positive, flip, params, scales, anchors):
+        """negative, positive: augmentation amplitudes (shift, rotation, distortion, scaling); flip: probability, axes"""
         random.shuffle(patches)
         self.patches = patches
         self.size = size
         self.dim = dim
-        self.neg_trans, self.neg_rot, self.neg_disp, self.neg_scal = neg_trans, neg_rot, neg_disp, neg_scal
-        self.pos_trans, self.pos_rot, self.pos_disp, self.pos_scal = pos_trans, pos_rot, pos_disp, pos_scal
-        self.flip_prob, self.flip_axis = flip_prob, flip_axes
+        self.neg_trans, self.neg_rot = negative["shift"], negative["rotation"]
+        self.neg_disp, self.neg_scal = negative["distortion"], negative["scaling"]
+        self.pos_trans, self.pos_rot = positive["shift"], positive["rotation"]
+        self.pos_disp, self.pos_scal = positive["distortion"], positive["scaling"]
+        self.flip_prob, self.flip_axis = flip["probability"], list(flip["axes"])
 
         self.scales = scales
         self.anchors = anchors

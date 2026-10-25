@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Youssef Assis" }]
 dependencies = [
+    "hydra-core>=1.3",
     "joblib",
     "matplotlib",
     "nibabel",
@@ -29,7 +30,6 @@ dependencies = [
 deepanedet-convert-annotations = "deepanedet.cli.convert_annotations:main"
 deepanedet-remove-skull = "deepanedet.cli.remove_skull:main"
 deepanedet-extract-points = "deepanedet.cli.extract_points:main"
-deepanedet-prepare = "deepanedet.cli.prepare:main"
 deepanedet-train = "deepanedet.cli.train:main"
 deepanedet-predict = "deepanedet.cli.predict:main"
 deepanedet-evaluate = "deepanedet.cli.evaluate:main"
@@ -63,6 +63,9 @@ explicit = true
 
 [tool.setuptools.packages.find]
 include = ["deepanedet*"]
+
+[tool.setuptools.package-data]
+deepanedet = ["configs/*.yaml", "configs/*/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

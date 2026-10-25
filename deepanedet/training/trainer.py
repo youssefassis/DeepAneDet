@@ -10,13 +10,26 @@ logger = get_logger("Trainer")
 
 
 def create_trainer(
-    config, device, model, optimizer, lr_scheduler, loss_criterion, loaders, max_iterations, scales, anchors
+    train_dir,
+    device,
+    model,
+    optimizer,
+    lr_scheduler,
+    loss_criterion,
+    loaders,
+    max_iterations,
+    max_num_epochs,
+    save_every,
+    warmup_epochs,
+    scales,
+    anchors=None,
+    mixed_precision=True,
 ):
-    assert config is not None, "Could not find trainer configuration"
-
-    if os.path.isfile(config["model_file"]):
-        logger.info(f"Continue training from checkpoint ({config['model_file']})")
-        state = load_checkpoint(config["model_file"], model, optimizer)
+    """Creates a Trainer writing to train_dir, resuming from train_dir/last_checkpoint.pytorch if it exists."""
+    model_path = os.path.join(train_dir, "last_checkpoint.pytorch")
+    if os.path.isfile(model_path):
+        logger.info(f"Continue training from checkpoint ({model_path})")
+        state = load_checkpoint(model_path, model, optimizer)
         num_epoch = state["epoch"]
     else:
         logger.info("Training from scratch")
@@ -30,15 +43,15 @@ def create_trainer(
         loss_criterion=loss_criterion,
         device=device,
         loaders=loaders,
-        model_path=config["model_file"],
+        model_path=model_path,
         max_iterations=max_iterations,
-        max_num_epochs=config["n_epochs"],
-        save_model_each_epochs=config["save model each n epoch"],
-        warmup_epochs=config["warmEpochs"],
+        max_num_epochs=max_num_epochs,
+        save_model_each_epochs=save_every,
+        warmup_epochs=warmup_epochs,
         num_epoch=num_epoch,
         scales=scales,
         anchors=anchors,
-        mixed_precision=config.get("mixed_precision", True),
+        mixed_precision=mixed_precision,
     )
     if state is not None:
         trainer.resume(state)

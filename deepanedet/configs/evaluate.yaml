@@ -1,0 +1,9 @@
+# Detection metrics of a training's predictions, written next to them
+train_dir: ???                  # training directory written by deepanedet-train
+predictions: ???                # folder written by deepanedet-predict, e.g. <train_dir>/prediction/200_epochs
+iou_threshold: 0.1              # a detection matches an aneurysm it overlaps by at least this IoU
+confidence_threshold: 0.01      # less confident detections are ignored
+
+hydra:
+  run:
+    dir: ${predictions}

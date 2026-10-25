@@ -1,0 +1,26 @@
+defaults:
+  - data: default
+  - model: assis
+  - optimizer: sgd
+  - scheduler: warmup_poly
+  - augmentation: default
+  - _self_
+
+data_dir: ???          # directory containing the patient folders
+name: ???              # training name; outputs go to ${data.work_dir}/${name}
+
+loss: YOLO_Loss                     # see deepanedet.training.losses.get_loss_criterion; YOLO_Loss_anchors with anchors
+anchors: null                       # anchor sphere radii, as patch fractions; as many as model.anchors_per_scale
+epochs: 200
+batch_size: 32
+balanced_batch: true                # fixed share of negative patches in each batch (see negative_patches)
+negative_patches: 15                # percentage of negative patches in each balanced batch
+drop_last: true                     # drop the last incomplete balanced batch
+mixed_precision: true               # float16 mixed precision on GPUs
+save_every: 10                      # epochs between kept <epoch>_checkpoint.pytorch files
+num_workers: 12                     # data loading processes, at most one per CPU
+weight_init: he                     # he (Kaiming normal) or pytorch (PyTorch defaults)
+
+hydra:
+  run:
+    dir: ${data.work_dir}/${name}

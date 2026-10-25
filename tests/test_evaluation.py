@@ -1,7 +1,11 @@
+import os
+
 import numpy as np
 import pytest
 
 from deepanedet.inference.evaluation import get_CM_dict
+
+from conftest import run_command
 
 
 def test_confusion_matrix_counts_tp_fp_and_fn():
@@ -65,8 +69,8 @@ def test_the_most_confident_detection_is_matched_first():
 def test_detections_are_read_for_each_patient_of_the_split(evaluation_fold):
     from deepanedet.inference.evaluation import get_detections
 
-    _, predictions_dir = evaluation_fold
-    patients = sorted(str(p) for p in (predictions_dir.parents[3] / "Data").iterdir())
+    train_dir, predictions_dir = evaluation_fold
+    patients = sorted(str(p) for p in train_dir.parents[1].glob("P????"))
 
     detections, fns = get_detections(str(predictions_dir), patients, truth_file_name="aneurysms.csv")
 
@@ -74,57 +78,56 @@ def test_detections_are_read_for_each_patient_of_the_split(evaluation_fold):
     assert sum(d["FP"] for d in detections) == 3 and fns == []
 
 
-def test_evaluate_script_writes_the_detection_table_and_figure(evaluation_fold, monkeypatch):
-    import matplotlib
+def evaluate(train_dir, predictions_dir):
+    return run_command(
+        "evaluate", f"train_dir={train_dir}", f"predictions={predictions_dir}", env={**os.environ, "MPLBACKEND": "Agg"}
+    )
 
-    matplotlib.use("Agg")
+
+def test_evaluate_command_writes_the_detection_table_and_figure(evaluation_fold):
     import pandas as pd
 
-    from deepanedet.cli import evaluate
+    train_dir, predictions_dir = evaluation_fold
 
-    _, predictions_dir = evaluation_fold
-    monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir) + "/"])
+    result = evaluate(train_dir, predictions_dir)
 
-    evaluate.main()
-
+    assert result.returncode == 0, result.stderr[-2000:]
     table = pd.read_csv(predictions_dir / "detection_evaluation@0.1.csv")
     assert table["TP"].sum() == 2 and table["FP"].sum() == 3
     assert (predictions_dir / "Evaluation@0.1.png").is_file()
 
 
 @pytest.mark.parametrize("kept", ["true positives", "nothing"])
-def test_evaluate_script_without_false_positives(evaluation_fold, monkeypatch, kept):
+def test_evaluate_command_without_false_positives(evaluation_fold, kept):
     import json
 
-    import matplotlib
-
-    matplotlib.use("Agg")
-    from deepanedet.cli import evaluate
-
-    _, predictions_dir = evaluation_fold
+    train_dir, predictions_dir = evaluation_fold
     for prediction_file in predictions_dir.glob("*.json"):
         detections = json.loads(prediction_file.read_text())
         kept_detections = (
             {k: d for k, d in detections.items() if d["confidence"] == 0.9} if kept == "true positives" else {}
         )
         prediction_file.write_text(json.dumps(kept_detections))
-    monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir)])
 
-    evaluate.main()
+    result = evaluate(train_dir, predictions_dir)
 
+    assert result.returncode == 0, result.stderr[-2000:]
     assert (predictions_dir / "Evaluation@0.1.png").is_file()
 
 
-def test_evaluate_script_without_aneurysm_reports_it(evaluation_fold, monkeypatch):
-    import matplotlib
-
-    matplotlib.use("Agg")
-    from deepanedet.cli import evaluate
-
-    _, predictions_dir = evaluation_fold
-    for truth in (predictions_dir.parents[3] / "Data").glob("*/aneurysms.csv"):
+def test_evaluate_command_without_aneurysm_reports_it(evaluation_fold):
+    train_dir, predictions_dir = evaluation_fold
+    for truth in train_dir.parents[1].glob("*/aneurysms.csv"):
         truth.unlink()
-    monkeypatch.setattr("sys.argv", ["evaluate.py", str(predictions_dir)])
 
-    with pytest.raises(SystemExit, match="No aneurysm"):
-        evaluate.main()
+    result = evaluate(train_dir, predictions_dir)
+
+    assert result.returncode != 0 and "No aneurysm" in result.stderr
+
+
+def test_evaluate_command_reports_missing_predictions(evaluation_fold):
+    train_dir, _ = evaluation_fold
+
+    result = evaluate(train_dir, train_dir / "missing")
+
+    assert result.returncode != 0 and "No predictions" in result.stderr

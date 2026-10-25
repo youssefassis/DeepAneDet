@@ -30,11 +30,12 @@ logger = get_logger("Data Preparation")
 
 def fetch_patient_dirs(base_dir):
     """
-    list all directories in base_dir that meet name format 'P????' and contain a file named config.json
-    primary use it to generate a list of patient directory names, with base_dir=config['base_dir'] (where
-    config is read from a base config.json file, see PreprocessData.ipynb)
+    Lists the patient directories of base_dir, P????-like or sub-*/ses-* as in the public dataset, that contain a
+    config.json file
     """
-    return [os.path.dirname(subject_conf) for subject_conf in glob.glob(os.path.join(base_dir, "P????", "config.json"))]
+    configs = glob.glob(os.path.join(base_dir, "P????", "config.json"))
+    configs += glob.glob(os.path.join(base_dir, "sub-*", "ses-*", "config.json"))
+    return sorted(os.path.dirname(config) for config in configs)
 
 
 def patient_name(patient_dir):

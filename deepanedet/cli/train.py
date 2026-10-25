@@ -1,79 +1,65 @@
+"""Train a model; configuration in deepanedet/configs/train.yaml.
+
+Example: deepanedet-train data_dir=/data data.split_file=reproducibility/fold1.json name=fold1
+Trains on the training patients of the split file, whose relative folders are taken from data_dir. Checkpoints,
+TensorBoard logs and the resolved configuration (.hydra/) are written to <data_dir>/0Work/<name>. Running the same
+command again resumes from the last checkpoint.
+"""
+
 import os
-import sys
+
+import hydra
 import torch
+from hydra.core.hydra_config import HydraConfig
+from hydra.utils import instantiate
 
-from deepanedet.utils import get_optimizer_scheduler, get_model, load_training_config
-from deepanedet.data.io import add_points_to_patient_data, read_split, read_patient_data_base
-from deepanedet.training.losses import get_loss_criterion
-
-from deepanedet.training.trainer import create_trainer
+from deepanedet.data.io import add_points_to_patient_data, read_patient_data_base, read_split
 from deepanedet.training.dataset import get_dataloaders
+from deepanedet.training.losses import get_loss_criterion
+from deepanedet.training.trainer import create_trainer
+from deepanedet.utils import create_lr_scheduler, detection_grid_size, get_model
 
 
-def main():
-    if len(sys.argv) != 2:
-        sys.exit(f"Usage: {sys.argv[0]} path/to/Train001")
-    config = load_training_config(sys.argv[1])
-
-    # Multiprocessing data loading
-    workers = min(12, os.cpu_count() or 1)  # data loading processes, at most one per CPU
-
-    # Data Preparation
-    train_list, _, _ = read_split(config["split_file"], config.get("base_dir"))
-    valid_list = []
-
-    train_db = add_points_to_patient_data(
-        read_patient_data_base(
-            pat_list=train_list,
-            volume=config["volume"],
-            pts_aneurysm=config["truth file"],
-            normalize=config["normalize"],
-            label="training",
-            workers=workers,
-        ),
-        config["negative patch centers"],
-        nb=None,
-    )
-
-    valid_db = (
-        add_points_to_patient_data(
-            read_patient_data_base(
-                pat_list=valid_list,
-                volume=config["volume"],
-                pts_aneurysm=config["truth file"],
-                normalize=config["normalize"],
-                label="validation",
-                workers=workers,
-            ),
-            config["negative patch centers"],
-            nb=None,
-        )
-        if len(valid_list) > 0
-        else None
-    )
-
-    # Data loaders
-    loaders, iterations = get_dataloaders(train_db=train_db, valid_db=valid_db, config=config, workers=workers)
-
+@hydra.main(version_base="1.3", config_path="../configs", config_name="train")
+def main(cfg):
+    if cfg.anchors is not None and len(cfg.anchors) != cfg.model.anchors_per_scale:
+        raise ValueError(f"{len(cfg.anchors)} anchors but model.anchors_per_scale={cfg.model.anchors_per_scale}")
+    train_dir = HydraConfig.get().runtime.output_dir
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # Model
-    model = get_model(config, device=device)
 
-    # optimizer & scheduler
-    warmup_steps = iterations["train"] * config["warmEpochs"] if "warmEpochs" in config else 0
-    optimizer, scheduler = get_optimizer_scheduler(model=model, config=config, warmup_steps=warmup_steps)
+    model = get_model(cfg.model, weight_init=cfg.weight_init, device=device)
+
+    train_list, _, _ = read_split(cfg.data.split_file, cfg.data.data_dir)
+    patients = read_patient_data_base(
+        train_list,
+        volume=cfg.data.volume,
+        pts_aneurysm=cfg.data.truth_file,
+        normalize=cfg.data.normalize,
+        label="training",
+        workers=min(cfg.num_workers, os.cpu_count() or 1),
+    )
+    train_db = add_points_to_patient_data(patients, cfg.data.negative_patch_centers)
+    loaders, iterations = get_dataloaders(train_db, None, cfg)
+
+    optimizer = instantiate(cfg.optimizer, params=model.parameters(), _convert_="all")
+    warmup_steps = iterations["train"] * cfg.scheduler.get("warmup_epochs", 0)
+    lr_scheduler = create_lr_scheduler(optimizer, cfg.scheduler, epochs=cfg.epochs, warmup_steps=warmup_steps)
 
     trainer = create_trainer(
-        config=config,
+        train_dir,
         device=device,
         model=model,
         optimizer=optimizer,
-        lr_scheduler=scheduler,
-        loss_criterion=get_loss_criterion(config["loss"]),
+        lr_scheduler=lr_scheduler,
+        loss_criterion=get_loss_criterion(cfg.loss),
         loaders=loaders,
         max_iterations=iterations,
-        scales=config["scales"],
-        anchors=config["anchors"] if "anchors" in config else None,
+        max_num_epochs=cfg.epochs,
+        save_every=cfg.save_every,
+        warmup_epochs=cfg.scheduler.get("warmup_epochs", 0),
+        scales=[detection_grid_size(cfg.data.patch_shape[0], cfg.model.num_levels)],
+        anchors=None if cfg.anchors is None else list(cfg.anchors),
+        mixed_precision=cfg.mixed_precision,
     )
     trainer.fit()
 

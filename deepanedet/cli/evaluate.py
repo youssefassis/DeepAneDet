@@ -1,13 +1,24 @@
+"""Evaluate a training's predictions; configuration in deepanedet/configs/evaluate.yaml.
+
+Example: deepanedet-evaluate train_dir=/data/0Work/fold1 predictions=/data/0Work/fold1/prediction/200_epochs
+Detections are matched, from the most to the least confident, to the aneurysm they overlap most. Writes the table of
+detections (detection_evaluation@<iou>.csv) and a figure of the metrics (Evaluation@<iou>.png) next to the predictions.
+"""
+
+import glob
 import os
-import json
 import re
 import sys
+
+import hydra
 import matplotlib.pyplot as plt
-from deepanedet.inference import evaluation
 import numpy as np
 import pandas as pd
-from deepanedet.data import io as dio
 from sklearn.metrics import auc
+
+from deepanedet.data import io as dio
+from deepanedet.inference import evaluation
+from deepanedet.utils import load_training_config
 
 
 def summarize(values):
@@ -19,30 +30,23 @@ def summarize(values):
     return np.mean(values), np.std(values), np.max(values), np.min(values)
 
 
-def main():
-    predictions_dir = sys.argv[1]
-    print(predictions_dir)
-    if not os.path.isdir(predictions_dir):
-        sys.exit(f"No predictions directory '{predictions_dir}'")
+@hydra.main(version_base="1.3", config_path="../configs", config_name="evaluate")
+def main(cfg):
+    predictions_dir = cfg.predictions
+    if not glob.glob(os.path.join(predictions_dir, "*.json")):  # Hydra creates the folder, as its run directory
+        sys.exit(f"No predictions in '{predictions_dir}'; run deepanedet-predict first")
 
-    iou_threshold = 0.1
-    confidence_threshold = 0.01
-
-    # Only one fold
-    train_dir = predictions_dir[: predictions_dir.find("Predictions")]
-    out_dir = os.path.join(os.getcwd(), predictions_dir)
-
-    with open(os.path.join(train_dir, "ndl_config.json"), "r") as f:
-        config = json.load(f)
-    split_file = config["split_file"][0] if isinstance(config["split_file"], list) else config["split_file"]
-    train_pats, val_pats, test_pats = dio.read_split(split_file, config.get("base_dir"))
-    patients = val_pats + test_pats  # predict.py predicts both
+    iou_threshold, confidence_threshold = cfg.iou_threshold, cfg.confidence_threshold
+    out_dir = predictions_dir
+    config = load_training_config(cfg.train_dir)
+    train_pats, val_pats, test_pats = dio.read_split(config.data.split_file, config.data.data_dir)
+    patients = val_pats + test_pats  # deepanedet-predict predicts both
     print(len(patients), "patients for test")
 
     detections, FNs = evaluation.get_detections(
         predictions_dir,
         patients,
-        truth_file_name=config["truth file"],
+        truth_file_name=config.data.truth_file,
         iou_thr=iou_threshold,
         confidence_thr=confidence_threshold,
         max_per_patient=None,
@@ -108,7 +112,7 @@ def main():
     assert len(diameters_TP) == len(diameters_TP_GT) == len(confidence_TP)
     assert len(confidence_FP) == len(confidence_FP)
 
-    # predict.py writes to Predictions/<epoch>_epochs/...
+    # deepanedet-predict writes to prediction/<epoch>_epochs by default
     epoch_dir = re.search(r"(\d+)_epochs", predictions_dir)
     epoch = epoch_dir.group(1) if epoch_dir else "unknown"
 
@@ -302,9 +306,9 @@ def main():
     # Last figure
     train_aneurysms, test_aneurysms = [], []
     for pat in train_pats:
-        train_aneurysms += dio.SizeAnev(pat, config["truth file"])
+        train_aneurysms += dio.SizeAnev(pat, config.data.truth_file)
     for pat in patients:
-        test_aneurysms += dio.SizeAnev(pat, config["truth file"])
+        test_aneurysms += dio.SizeAnev(pat, config.data.truth_file)
 
     ax8.set_xticks([i for i in range(0, int(np.floor(max(train_aneurysms + test_aneurysms, default=0))) + 1, 2)])
     ax8.hist(train_aneurysms, bins=range(0, 20), alpha=0.3, color="red", edgecolor="black", linewidth=1.5)
