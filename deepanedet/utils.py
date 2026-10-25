@@ -10,14 +10,19 @@ import torch
 
 def load_training_config(train_dir):
     """
-    Reads the ndl_config.json of a training directory (see scripts/prepare.py). Missing scales default to one
-    detection grid cell per 8 patch voxels.
+    Reads the ndl_config.json of a training directory (see scripts/prepare.py). Missing scales default to the single
+    detection grid of the deepest encoder level.
     """
     with open(os.path.join(train_dir, "ndl_config.json"), "r") as f:
         config = json.load(f)
     if config.get("scales") is None:
-        config["scales"] = [math.ceil(x / 8) for x in config["patch_shape"]]
+        config["scales"] = [detection_grid_size(config["patch_shape"][0], config["depth"])]
     return config
+
+
+def detection_grid_size(patch_shape, depth):
+    """Cells along each side of the detection grid: the patch is halved by each of the depth - 1 poolings"""
+    return math.ceil(patch_shape / 2 ** (depth - 1))
 
 
 def get_model(config, default_init="He", device="cpu"):

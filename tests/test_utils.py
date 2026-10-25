@@ -6,10 +6,10 @@ from deepanedet.utils import load_training_config
 
 
 @pytest.mark.parametrize("stored", [{}, {"scales": None}])
-def test_training_config_defaults_to_one_cell_per_8_voxels(tmp_path, stored):
-    (tmp_path / "ndl_config.json").write_text(json.dumps({"patch_shape": [96, 96, 100], **stored}))
+def test_training_config_defaults_to_the_grid_of_the_deepest_level(tmp_path, stored):
+    (tmp_path / "ndl_config.json").write_text(json.dumps({"patch_shape": [96, 96, 96], "depth": 4, **stored}))
 
-    assert load_training_config(str(tmp_path))["scales"] == [12, 12, 13]
+    assert load_training_config(str(tmp_path))["scales"] == [12]
 
 
 def test_training_config_keeps_its_scales(tmp_path):
