@@ -16,17 +16,6 @@ from deepanedet.helpers import (
 )
 
 
-def calculate_origin_offset(new_spacing, old_spacing):
-    """
-    This is a Python function that calculates the origin offset between two sets
-    of spacing values. The function takes in two arguments: new_spacing, which is
-    a list of three spacing values representing the new spacing in x, y, and z
-    dimensions, and old_spacing, which is a list of three spacing values
-    representing the old spacing in x, y, and z dimensions.
-    """
-    return np.subtract(new_spacing, old_spacing) / 2
-
-
 def set_affine_spacing(affine, spacing):
     """
     This function adjusts the spacing of a given affine transformation matrix.
@@ -50,16 +39,16 @@ def sitk_resample_to_spacing(image, new_spacing=(1.0, 1.0, 1.0), interpolator=si
     This function takes a SimpleITK image, and resamples it to a new spacing. The
     resampling is performed using an interpolation method specified by interpolator,
     and any pixels that are not part of the original image are assigned a value
-    specified by default_value.
+    specified by default_value. The first voxels of both grids share their center, as
+    set_affine_spacing assumes when mapping resampled coordinates back to the scanner space.
     """
     zoom_factor = np.divide(image.GetSpacing(), new_spacing)
     new_size = np.asarray(np.ceil(np.round(np.multiply(zoom_factor, image.GetSize()), decimals=5)), dtype=np.int16)
-    offset = calculate_origin_offset(new_spacing, image.GetSpacing())
     reference_image = sitk_new_blank_image(
         size=new_size,
         spacing=new_spacing,
         direction=image.GetDirection(),
-        origin=image.GetOrigin() + offset,
+        origin=image.GetOrigin(),
         default_value=default_value,
     )
     return sitk_resample_to_image(image, reference_image, interpolator=interpolator, default_value=default_value)
@@ -135,28 +124,17 @@ def resample_to_spacing(data, spacing, target_spacing, interpolation="linear", d
 
 def data_to_sitk_image(data, spacing=(1.0, 1.0, 1.0)):
     """
-    This function takes a 3D numpy array data and a tuple spacing as input arguments
-    and returns a SimpleITK image. The data array is converted to a SimpleITK image
-    using the sitk.GetImageFromArray() function, and the spacing tuple is used to set
-    the voxel spacing of the image using the SetSpacing() method.
+    Returns the (x, y, z) volume data as a SimpleITK image of the given voxel spacing; SimpleITK arrays are indexed
+    (z, y, x), hence the transpose.
     """
-    if len(data.shape) == 3:
-        data = np.rot90(data, 1, axes=(0, 2))
-    image = sitk.GetImageFromArray(data)
+    image = sitk.GetImageFromArray(data.T)
     image.SetSpacing(np.asarray(spacing, dtype=np.float64))
     return image
 
 
 def sitk_image_to_data(image):
-    """
-    This function takes a SimpleITK image object as input and returns its pixel data
-    as a numpy array. If the image has 3 dimensions, it is rotated 90 degrees
-    counterclockwise along the first and third axes to orient it in a consistent way.
-    """
-    data = sitk.GetArrayFromImage(image)
-    if len(data.shape) == 3:
-        data = np.rot90(data, -1, axes=(0, 2))
-    return data
+    """Returns the pixel data of a SimpleITK image as an (x, y, z) volume, as data_to_sitk_image takes it"""
+    return sitk.GetArrayFromImage(image).T
 
 
 def ndl_patch_wise_prediction(

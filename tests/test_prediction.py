@@ -83,3 +83,19 @@ def test_validation_cases_keep_patients_with_the_same_session_apart(tmp_path):
         "sub-001_ses-20100101.json",
         "sub-002_ses-20100101.json",
     ]
+
+
+@pytest.mark.parametrize("position", [(20, 30, 40), (80, 15, 12), (50, 45, 30)])
+def test_resampling_keeps_positions_in_the_scanner_space(position):
+    spacing, target_spacing = np.array([0.35, 0.35, 0.5]), np.array([0.4, 0.4, 0.4])
+    affine = np.diag([*spacing, 1.0])
+    affine[:3, 3] = [-10, 5, 3]
+    grid = np.indices((101, 90, 61)).transpose(1, 2, 3, 0)
+    blob = np.exp(-(((grid - position) * spacing) ** 2).sum(-1) / 2).astype(np.float32)  # 1 mm wide
+
+    resampled = prediction.resample_to_spacing(blob, spacing, target_spacing)
+
+    weights = resampled.reshape(-1)
+    center = (np.indices(resampled.shape).reshape(3, -1) * weights).sum(1) / weights.sum()
+    found = prediction.set_affine_spacing(affine, target_spacing) @ np.r_[center, 1]
+    np.testing.assert_allclose(found[:3], (affine @ np.r_[position, 1])[:3], atol=0.01)
