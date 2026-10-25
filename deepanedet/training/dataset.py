@@ -18,7 +18,7 @@ def get_dataloaders(train_db, valid_db, cfg):
     """
     Returns the training and validation data loaders (None without patients) and their numbers of batches.
     cfg: training configuration (see configs/train.yaml), providing data.patch_size, data.patch_shape, model.num_levels,
-    model.params_per_element, anchors, augmentation, batch_size, validation_batch_size (with valid_db), balanced_batch,
+    augmentation, batch_size, validation_batch_size (with valid_db), balanced_batch,
     negative_patches, drop_last and num_workers.
     Training batches hold a fixed share of negative patches with balanced_batch, else are randomly drawn.
     """
@@ -34,9 +34,7 @@ def get_dataloaders(train_db, valid_db, cfg):
             negative=augmentation["negative"],
             positive=augmentation["positive"],
             flip=augmentation["flip"],
-            params=cfg["model"]["params_per_element"],
             scales=scales,
-            anchors=None if cfg.get("anchors") is None else list(cfg["anchors"]),
         )
 
     train_generator, train_iterations = None, 0
@@ -92,7 +90,7 @@ class Dataset(torch.utils.data.Dataset):
     positive and negative patches, and the scales size as a list (e.g. [12]).
     """
 
-    def __init__(self, patches, size, dim, negative, positive, flip, params, scales, anchors):
+    def __init__(self, patches, size, dim, negative, positive, flip, scales):
         """negative, positive: augmentation amplitudes (shift, rotation, distortion, scaling); flip: probability, axes"""
         random.shuffle(patches)
         self.patches = patches
@@ -105,14 +103,11 @@ class Dataset(torch.utils.data.Dataset):
         self.flip_prob, self.flip_axis = flip["probability"], list(flip["axes"])
 
         self.scales = scales
-        self.anchors = anchors
-        self.nb_parameters = params
 
         logger.info(f"Patch size = {[round(elem, 2) for elem in self.size]}")
         logger.info(f"Patch dimension = {self.dim}")
 
         logger.info(f"Scales: {self.scales}")
-        logger.info(f"Anchors: {self.anchors}")
 
         logger.info(
             f"Positive patches: Scaling: {self.pos_scal}; Translation: {self.pos_trans}; Rotation: {self.pos_rot}; Distorision: {self.pos_disp}; Flip axis: {self.flip_axis}; Flip probability {self.flip_prob}"
@@ -166,17 +161,7 @@ class Dataset(torch.utils.data.Dataset):
             data=[v, aneurysms], axes=self.flip_axis, patch_shape=self.dim, flip_probability=self.flip_prob
         )
 
-        if self.anchors is None:
-            if self.nb_parameters == 4:  # bounding spheres
-                targets = get_spheres_from_aneurysms_points(points=aneurysms / self.dim[0], scales=self.scales)
-            elif self.nb_parameters == 6:  # bounding boxes
-                targets = get_boxes_from_aneurysms_points(points=aneurysms, scales=self.scales, dim=self.dim[0])
-
-        else:
-            targets = get_spheres_from_aneurysms_points_with_anchors(
-                points=aneurysms / self.dim[0], scales=self.scales, anchors=self.anchors
-            )
-
+        targets = get_spheres_from_aneurysms_points(points=aneurysms / self.dim[0], scales=self.scales)
         targets = [[torch.from_numpy(scale[0]), torch.from_numpy(scale[1])] for scale in targets]
 
         return {"volume": torch.from_numpy(v[np.newaxis]).float(), "truth": targets}
@@ -211,86 +196,4 @@ def get_spheres_from_aneurysms_points(points, scales):
             radius_cell = radius * S
             targets[idx][0][i, j, k, 0] = 1
             targets[idx][1][i, j, k, 0:] = np.array([x_cell, y_cell, z_cell, radius_cell])
-    return targets
-
-
-def get_spheres_from_aneurysms_points_with_anchors(points, scales, anchors, ignore_iou_thresh=0.5):
-    def get_ious(spheres1, spheres2):
-        spheres1 = np.array(spheres1)
-        spheres2 = np.array(spheres2)
-        intersection = np.minimum(spheres1, spheres2)
-        union = np.maximum(spheres1, spheres2)
-        return intersection / union
-
-    targets = [
-        [
-            np.zeros((len(anchors), S, S, S, 1), dtype="float32"),  # confidence
-            np.zeros((len(anchors), S, S, S, 4), dtype="float32"),
-        ]  # parameters (x, y, z, radius)
-        for S in scales
-    ]
-
-    num_anchors_per_scale = len(anchors) // len(scales)
-    for idx in range(0, points.shape[0], 2):  # for each aneurysm/sphere inside the patch volume
-        p1, p2 = points[idx], points[idx + 1]
-        center = (p1 + p2) / 2
-        radius = np.linalg.norm(p1 - p2) / 2
-        x, y, z = center
-
-        iou_anchors = get_ious(radius, anchors)
-        anchor_indices = (-iou_anchors).argsort()
-
-        has_anchor = [False] * len(
-            anchors
-        )  # make sure at the end that there is a bounding sphere for each of three scales
-        for anchor_idx in anchor_indices:
-            scale_idx = anchor_idx // num_anchors_per_scale
-            anchor_on_scale = anchor_idx % num_anchors_per_scale
-            S = scales[scale_idx]  # anchors in that scale
-            i, j, k = int(S * x), int(S * y), int(S * z)  # which cell in the patch
-            anchor_taken = targets[scale_idx][0][anchor_on_scale, i, j, k, 0]
-
-            if not has_anchor[scale_idx] and not anchor_taken:
-                x_cell, y_cell, z_cell = (
-                    S * x - i,
-                    S * y - j,
-                    S * z - k,
-                )  # each one is between [0, 1] center coords relative to the cell
-                radius_cell = radius * S
-                targets[scale_idx][0][anchor_on_scale, i, j, k, 0] = (
-                    1  # there is an object here, so truth confidence = 1
-                )
-                targets[scale_idx][1][anchor_on_scale, i, j, k, 0:] = np.array([x_cell, y_cell, z_cell, radius_cell])
-                has_anchor[scale_idx] = True
-
-            elif not anchor_taken and iou_anchors[anchor_idx] > ignore_iou_thresh:
-                targets[scale_idx][0][anchor_on_scale, i, j, k, 0] = -1  # ignore detection
-    return targets
-
-
-def get_boxes_from_aneurysms_points(points, scales, dim=96):
-    targets = [[np.zeros((S, S, S, 1), dtype="float32"), np.zeros((S, S, S, 6), dtype="float32")] for S in scales]
-    for idx in range(0, points.shape[0], 2):
-        p1, p2 = points[idx], points[idx + 1]
-        center = ((p1 + p2) / 2) / dim
-        x, y, z = center
-        for idx, S in enumerate(scales):
-            i, j, k = int(S * x), int(S * y), int(S * z)  # which cell in the volume
-            x_cell, y_cell, z_cell = (
-                S * x - i,
-                S * y - j,
-                S * z - k,
-            )  # each one is between [0, 1] center coords relative to the cell
-
-            length = (np.linalg.norm(p1[0] - p2[0]) / 2) / dim
-            width = (np.linalg.norm(p1[1] - p2[1]) / 2) / dim
-            depth = (np.linalg.norm(p1[2] - p2[2]) / 2) / dim
-            length_cell, width_cell, depth_cell = (
-                length * S,
-                width * S,
-                depth * S,
-            )  # can be greater than 1 since it's relative to cell
-
-            targets[idx][0][i, j, k, 0] = 1  # there is an object here, so truth confidence = 1
-            targets[idx][1][i, j, k, 0:] = np.array([x_cell, y_cell, z_cell, length_cell, width_cell, depth_cell])
     return targets

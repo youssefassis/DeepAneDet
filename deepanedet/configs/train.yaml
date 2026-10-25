@@ -9,8 +9,7 @@ defaults:
 data_dir: ???          # directory containing the patient folders
 name: ???              # training name; outputs go to ${data.work_dir}/${name}
 
-loss: YOLO_Loss                     # see deepanedet.training.losses.get_loss_criterion; YOLO_Loss_anchors with anchors
-anchors: null                       # anchor sphere radii, as patch fractions; as many as model.anchors_per_scale
+loss: YOLO_Loss                     # see deepanedet.training.losses.get_loss_criterion
 epochs: 200
 batch_size: 32
 balanced_batch: true                # fixed share of negative patches in each batch (see negative_patches)

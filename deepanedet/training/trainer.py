@@ -21,8 +21,6 @@ def create_trainer(
     max_num_epochs,
     save_every,
     warmup_epochs,
-    scales,
-    anchors=None,
     mixed_precision=True,
 ):
     """Creates a Trainer writing to train_dir, resuming from train_dir/last_checkpoint.pytorch if it exists."""
@@ -49,8 +47,6 @@ def create_trainer(
         save_model_each_epochs=save_every,
         warmup_epochs=warmup_epochs,
         num_epoch=num_epoch,
-        scales=scales,
-        anchors=anchors,
         mixed_precision=mixed_precision,
     )
     if state is not None:
@@ -73,8 +69,6 @@ class Trainer:
         max_iterations,
         warmup_epochs,
         num_epoch,
-        scales,
-        anchors,
         mixed_precision=True,
     ):
         self.model = model
@@ -96,15 +90,6 @@ class Trainer:
         self.mixed_precision = GradScaler(self.device_type, enabled=self.use_amp)
 
         self.writer = SummaryWriter(log_dir=os.path.join(self.checkpoint_dir, "logs"))
-
-        self.scaled_anchors = (
-            (
-                torch.tensor(anchors).reshape(len(scales), len(anchors) // len(scales), 1)
-                * torch.tensor(scales).unsqueeze(1).unsqueeze(1).repeat(1, len(anchors) // len(scales), 1)
-            ).to(self.device)
-            if anchors is not None
-            else None
-        )
 
     def resume(self, state):
         """
@@ -147,13 +132,7 @@ class Trainer:
             # Mixed precision training: Forward pass
             with torch.amp.autocast(self.device_type, enabled=self.use_amp):
                 pred_spheres = self.model(input_volume)
-                loss = (
-                    self.loss_criterion(predictions=pred_spheres, targets=target_spheres)
-                    if self.scaled_anchors is None
-                    else self.loss_criterion(
-                        predictions=pred_spheres, targets=target_spheres, anchors=self.scaled_anchors
-                    )
-                )
+                loss = self.loss_criterion(predictions=pred_spheres, targets=target_spheres)
 
             # Back propagation
             self.mixed_precision.scale(loss).backward()

@@ -18,13 +18,11 @@ from deepanedet.data.io import add_points_to_patient_data, read_patient_data_bas
 from deepanedet.training.dataset import get_dataloaders
 from deepanedet.training.losses import get_loss_criterion
 from deepanedet.training.trainer import create_trainer
-from deepanedet.utils import create_lr_scheduler, detection_grid_size, get_model, run_info, seed_everything
+from deepanedet.utils import create_lr_scheduler, get_model, run_info, seed_everything
 
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train")
 def main(cfg):
-    if cfg.anchors is not None and len(cfg.anchors) != cfg.model.anchors_per_scale:
-        raise ValueError(f"{len(cfg.anchors)} anchors but model.anchors_per_scale={cfg.model.anchors_per_scale}")
     train_dir = HydraConfig.get().runtime.output_dir
     if cfg.seed is not None:
         seed_everything(cfg.seed)
@@ -64,8 +62,6 @@ def main(cfg):
         max_num_epochs=cfg.epochs,
         save_every=cfg.save_every,
         warmup_epochs=cfg.scheduler.get("warmup_epochs", 0),
-        scales=[detection_grid_size(cfg.data.patch_shape[0], cfg.model.num_levels)],
-        anchors=None if cfg.anchors is None else list(cfg.anchors),
         mixed_precision=cfg.mixed_precision,
     )
     trainer.fit()
