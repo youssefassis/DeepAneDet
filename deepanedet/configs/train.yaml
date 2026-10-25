@@ -12,6 +12,7 @@ name: ???              # training name; outputs go to ${data.work_dir}/${name}
 loss: YOLO_Loss                     # see deepanedet.training.losses.get_loss_criterion
 epochs: 200
 batch_size: 32
+validation_batch_size: 128          # no gradients are kept during validation, so larger batches fit
 balanced_batch: true                # fixed share of negative patches in each batch (see negative_patches)
 negative_patches: 15                # percentage of negative patches in each balanced batch
 drop_last: true                     # drop the last incomplete balanced batch

@@ -73,13 +73,14 @@ def write_patient(patient, aneurysm):
 def test_train_predict_and_evaluate_from_a_relative_split(tmp_path):
     write_patient(tmp_path / "Data" / "P0001", aneurysm=True)
     write_patient(tmp_path / "Data" / "sub-002" / "ses-1", aneurysm=False)
-    split = {"training list": ["P0001"], "validation list": [], "testing list": ["P0001", "sub-002/ses-1"]}
+    split = {"training list": ["P0001"], "validation list": ["P0001"], "testing list": ["P0001", "sub-002/ses-1"]}
     (tmp_path / "split.json").write_text(json.dumps(split))
     train_dir = tmp_path / "Data" / "0Work" / "exp"
 
     trained = run_command("train", *TINY_TRAINING, "data_dir=Data", "epochs=1", cwd=tmp_path)
     assert trained.returncode == 0, trained.stderr[-2000:]
     assert (train_dir / "last_checkpoint.pytorch").is_file() and (train_dir / "run_info.json").is_file()
+    assert (train_dir / "best_checkpoint.pytorch").is_file()  # validated on P0001
 
     # from another folder: the training's relative data folder and split file are found again
     predicted = run_command("predict", f"train_dir={train_dir}", "margin=2", "tta=false", cwd=tmp_path / "Data")

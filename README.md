@@ -97,8 +97,8 @@ uv run deepanedet-remove-skull data_dir=Data
 uv run deepanedet-extract-points data_dir=Data
 ```
 
-**2. Training:** on the training patients of the split; outputs go to `Data/0Work/fold1`, and running the same
-command again resumes the training.
+**2. Training:** on the training patients, with the validation loss computed after each epoch; outputs go to
+`Data/0Work/fold1`, and running the same command again resumes the training.
 ```
 uv run deepanedet-train data_dir=Data data.split_file=reproducibility/fold1.json name=fold1
 ```
@@ -107,7 +107,7 @@ uv run deepanedet-train data_dir=Data data.split_file=reproducibility/fold1.json
 default, to `prediction/<epochs>_epochs`. Each detection has a center (x, y, z) and a radius in mm, and a confidence
 between 0 and 1.
 ```
-uv run deepanedet-predict train_dir=Data/0Work/fold1        # checkpoint=150_checkpoint.pytorch tta=false
+uv run deepanedet-predict train_dir=Data/0Work/fold1        # checkpoint=best_checkpoint.pytorch tta=false
 ```
 
 **4. Evaluation:** matches the detections, from the most to the least confident, to the aneurysm they overlap most
@@ -137,6 +137,7 @@ fold1/                           one training
   .hydra/config.yaml             resolved configuration, read back by deepanedet-predict and deepanedet-evaluate
   run_info.json                  git commit and library versions
   last_checkpoint.pytorch        model after the last epoch, used for prediction by default
+  best_checkpoint.pytorch        model with the lowest validation loss
   <epoch>_checkpoint.pytorch     model every save_every (10) epochs
   logs/                          TensorBoard logs: uv run tensorboard --logdir Data/0Work
   train.log
@@ -147,7 +148,8 @@ fold1/                           one training
 ```
 
 ## Requirements
-- **Memory:** training keeps the training scans in memory, 4 bytes per voxel: 150 MiB for a 512×512×150 scan.
+- **Memory:** training keeps the training and validation scans in memory, 4 bytes per voxel: 150 MiB for a
+  512×512×150 scan.
 - **GPU:** the network has 28.8 M parameters (110 MiB). Its memory use comes mostly from the batch of 32 patches of
   96³ voxels, with mixed precision; if the GPU runs out of memory, lower `batch_size`.
 

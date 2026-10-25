@@ -14,6 +14,7 @@ from deepanedet.training.batch_sampler import BalancedBatchSampler
 logger = get_logger("Dataset")
 
 MAX_PATCH_ATTEMPTS = 100  # augmentations drawn for a patch until its aneurysms are wholly inside or outside it
+NO_AUGMENTATION = {"shift": None, "rotation": None, "distortion": None, "scaling": None}
 
 
 def get_dataloaders(train_db, valid_db, cfg):
@@ -22,20 +23,21 @@ def get_dataloaders(train_db, valid_db, cfg):
     cfg: training configuration (see configs/train.yaml), providing data.patch_size, data.patch_shape, model.num_levels,
     augmentation, batch_size, validation_batch_size (with valid_db), balanced_batch,
     negative_patches, drop_last and num_workers.
-    Training batches hold a fixed share of negative patches with balanced_batch, else are randomly drawn.
+    Training batches hold a fixed share of negative patches with balanced_batch, else are randomly drawn. Validation
+    patches are neither augmented nor duplicated, so that the validation loss is comparable from one epoch to the next.
     """
     workers = min(cfg["num_workers"], os.cpu_count() or 1)
     augmentation = cfg["augmentation"]
     scales = [detection_grid_size(cfg["data"]["patch_shape"][0], cfg["model"]["num_levels"])]
 
-    def make_dataset(patches):
+    def make_dataset(patches, augment):
         return Dataset(
             patches=patches,
             size=list(cfg["data"]["patch_size"]),
             dim=list(cfg["data"]["patch_shape"]),
-            negative=augmentation["negative"],
-            positive=augmentation["positive"],
-            flip=augmentation["flip"],
+            negative=augmentation["negative"] if augment else NO_AUGMENTATION,
+            positive=augmentation["positive"] if augment else NO_AUGMENTATION,
+            flip=augmentation["flip"] if augment else {"probability": 0, "axes": [0]},
             scales=scales,
         )
 
@@ -46,7 +48,7 @@ def get_dataloaders(train_db, valid_db, cfg):
         train_patches, train_iterations = get_patches(
             pat_db=train_db, dup_ane=augmentation["positive"]["duplicates"], batch_size=cfg["batch_size"]
         )
-        train_dataset = make_dataset(train_patches)
+        train_dataset = make_dataset(train_patches, augment=True)
         if cfg["balanced_batch"]:
             sampler = BalancedBatchSampler(
                 patches=train_dataset.patches,
@@ -68,10 +70,10 @@ def get_dataloaders(train_db, valid_db, cfg):
 
     if valid_db is not None:
         valid_patches, valid_iterations = get_patches(
-            pat_db=valid_db, dup_ane=augmentation["positive"]["duplicates"], batch_size=cfg["validation_batch_size"]
+            pat_db=valid_db, dup_ane=1, batch_size=cfg["validation_batch_size"]
         )
         valid_generator = torch.utils.data.DataLoader(
-            dataset=make_dataset(valid_patches),
+            dataset=make_dataset(valid_patches, augment=False),
             batch_size=cfg["validation_batch_size"],
             shuffle=False,
             num_workers=workers,

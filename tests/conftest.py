@@ -20,6 +20,7 @@ TINY_TRAINING = [
     "drop_last=false",
     "negative_patches=50",
     "num_workers=0",
+    "validation_batch_size=2",
     "augmentation.positive.duplicates=2",
     *[
         f"augmentation.{kind}.{aug}=null"

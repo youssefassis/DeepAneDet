@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 
-from deepanedet.training.dataset import Dataset, get_dataloaders
+from deepanedet.training.dataset import NO_AUGMENTATION, Dataset, get_dataloaders
 
 from conftest import TINY_TRAINING, compose_config
 
-NO_AUGMENTATION = {"shift": None, "rotation": None, "distortion": None, "scaling": None}
 
 # an aneurysm straddling the border of the 8 mm patch centered at (20, 20, 20)
 STRADDLING = {
@@ -18,7 +17,7 @@ STRADDLING = {
 
 
 def test_dataloaders_include_validation(patient_db, tmp_path):
-    cfg = compose_config("train", [*TINY_TRAINING, f"data_dir={tmp_path}", "+validation_batch_size=2"])
+    cfg = compose_config("train", [*TINY_TRAINING, f"data_dir={tmp_path}"])
 
     loaders, _ = get_dataloaders(train_db=patient_db[:1], valid_db=patient_db[1:], cfg=cfg)
 
