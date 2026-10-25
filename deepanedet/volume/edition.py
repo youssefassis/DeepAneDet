@@ -2,7 +2,7 @@ import numpy as np
 from skimage.filters import threshold_otsu
 
 
-def drawSphere(vol, vox2met, c, r, val=0):
+def draw_sphere(vol, vox2met, c, r, val=0):
     """
     draw ('burn') a 3D sphere in the volume (vol).
     The sphere is given by its center coordinates (c) and radius r in RAS coordinates.
@@ -41,7 +41,7 @@ def drawSphere(vol, vox2met, c, r, val=0):
         vol[pmin[0] : pmax[0], pmin[1] : pmax[1], pmin[2] : pmax[2]].flat[i] = val
 
 
-def getTruth(vol, vox2met, spheres, refined=False):
+def get_truth(vol, vox2met, spheres, refined=False):
     """
     This function takes a volume (3D ndarray) and a list of spheres (ndarray with shape (n, 4))
     as input, where each row represents a sphere with its center coordinates (x, y, z) and radius.
@@ -55,7 +55,7 @@ def getTruth(vol, vox2met, spheres, refined=False):
     """
     t = np.zeros(vol.shape).astype(np.uint8)
     for i, s in enumerate(spheres):
-        drawSphere(t, vox2met, s[:3], s[3], i + 1)
+        draw_sphere(t, vox2met, s[:3], s[3], i + 1)
 
     if refined:
         vol[t != 1] = 0

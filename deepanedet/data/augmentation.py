@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def randomFlip(data, patch_shape, axes=[0], flip_probability=0):
+def random_flip(data, patch_shape, axes=[0], flip_probability=0):
     """This function flips image or image coordinates along the specified axis/axes with a given probability.
     data: expected to be list of 3D images or image coordinates.
     patch_shape: a list that specifies the shape of the data to flip.

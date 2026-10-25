@@ -17,7 +17,7 @@ def number_of_features_per_level(init_channel_number, num_levels):
     return [init_channel_number * 2**k for k in range(num_levels)]
 
 
-def createBN(in_channels, eps=1e-5, affine=True):
+def create_bn(in_channels, eps=1e-5, affine=True):
     """
     This function creates a batch normalization layer using PyTorch nn.BatchNorm3d module.
     It takes in the number of input channels and two arguments:
@@ -30,14 +30,14 @@ def createBN(in_channels, eps=1e-5, affine=True):
     return nn.BatchNorm3d(in_channels, eps=eps, affine=affine)
 
 
-def createLeakyReLU(negative_slope=0.01, inplace=True):
+def create_leaky_relu(negative_slope=0.01, inplace=True):
     """
     This function creates a LeakyReLU activation function with the given negative slope and inplace parameters.
     """
     return nn.LeakyReLU(negative_slope=negative_slope, inplace=inplace)
 
 
-def createConv(inp_feat, out_feat, kernel=3, stride=1, padding=1, bias=True):
+def create_conv3d(inp_feat, out_feat, kernel=3, stride=1, padding=1, bias=True):
     """
     This function creates a batch normalization layer using PyTorch nn.BatchNorm3d module.
     It takes in the number of input channels and two arguments:
@@ -75,7 +75,7 @@ def create_conv(in_channels, out_channels, kernel_size, order, padding, stride=1
         if char == "r":
             modules.append(("ReLU", nn.ReLU(inplace=True)))
         elif char == "l":
-            modules.append(("LeakyReLU", createLeakyReLU()))
+            modules.append(("LeakyReLU", create_leaky_relu()))
         elif char == "m":
             modules.append(("Mish", nn.Mish(inplace=True)))
 
@@ -83,7 +83,10 @@ def create_conv(in_channels, out_channels, kernel_size, order, padding, stride=1
         elif char == "c":
             bias = "b" not in order
             modules.append(
-                ("conv", createConv(in_channels, out_channels, kernel_size, padding=padding, stride=stride, bias=bias))
+                (
+                    "conv",
+                    create_conv3d(in_channels, out_channels, kernel_size, padding=padding, stride=stride, bias=bias),
+                )
             )
 
         elif char == "d":
@@ -93,9 +96,9 @@ def create_conv(in_channels, out_channels, kernel_size, order, padding, stride=1
         elif char == "b":
             is_before_conv = i < order.find("c")
             if is_before_conv:
-                modules.append(("batchnorm", createBN(in_channels)))
+                modules.append(("batchnorm", create_bn(in_channels)))
             else:
-                modules.append(("batchnorm", createBN(out_channels)))
+                modules.append(("batchnorm", create_bn(out_channels)))
         elif char == "i":
             is_before_conv = i < order.find("c")
             if is_before_conv:

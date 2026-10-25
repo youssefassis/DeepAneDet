@@ -152,7 +152,7 @@ class Trainer:
             train_losses.update(loss, input_volume.size(0))
             loss_pr = train_losses.avg.item()
 
-            self._updateLR(warmup=True)
+            self._update_lr(warmup=True)
 
             # Update progress bar
             train_loop.set_description("Training")
@@ -160,9 +160,9 @@ class Trainer:
 
         self._save_checkpoint(is_best=False, last_score=loss_pr)
         self._log_stats(score=loss_pr)
-        self._updateLR()
+        self._update_lr()
 
-    def _updateLR(self, warmup=False):
+    def _update_lr(self, warmup=False):
         if self.scheduler is None:
             return
         elif warmup:  # each step

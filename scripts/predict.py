@@ -19,7 +19,7 @@ def main():
     logger.info("Setting the model to evaluation mode")
 
     logger = get_logger("Data Preparation")
-    train_list, valid_list, test_list = dio.readSplit(config["split_file"], config.get("base_dir"))
+    train_list, valid_list, test_list = dio.read_split(config["split_file"], config.get("base_dir"))
     test_list = sorted(valid_list + test_list)
 
     logger.info(f"{len(test_list)} Patients for testing")

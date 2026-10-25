@@ -7,7 +7,7 @@ import glob
 import time
 import sklearn
 
-from deepanedet.volume.selection import selectPoints
+from deepanedet.volume.selection import select_points
 from deepanedet.utils import get_logger
 
 from joblib import Parallel, delayed
@@ -228,7 +228,7 @@ def add_points_to_patient_data(da, pname, nb=None):
     return da
 
 
-def saveSplit(cfg, train_list, valid_list, test_list):
+def save_split(cfg, train_list, valid_list, test_list):
     """
     saves a list of patients (directories) split in train, validation and test lists into a json file (cfg), with keys 'training list',
     'validation list' and 'testing list'
@@ -245,11 +245,11 @@ def saveSplit(cfg, train_list, valid_list, test_list):
         json.dump(d, f, indent=4)
 
 
-def readSplit(cfg, data_dir=None):
+def read_split(cfg, data_dir=None):
     """
     reads a split list of patients (directories), in a json file with keys 'training list', 'validation list' and 'testing list'.
     Relative directories are taken from data_dir (as in reproducibility/fold*.json); absolute ones are kept.
-    see also saveSplit()
+    see also save_split()
     """
     with open(cfg, "r") as f:
         d = json.load(f)
@@ -277,12 +277,14 @@ def csv2fcsv(csv_pathname):
             f.write(",".join([f"{v}" for v in row]) + "\n")
 
 
-def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", randomPoints=False, truth_file=None):
+def extract_points_from_patient(
+    patient, r=20, nb_points=100, outfile="points.csv", random_points=False, truth_file=None
+):
     """
     This function extracts points from a patient's imaging volume. The points can either be randomly
     selected from the parenchyma or selected from vessels based on a threshold of the image intensity.
     The function takes the patient's directory, the distance (r) between any two points, the number
-    of points (nbPoints) to extract, the name of the output file (outfile), and a boolean variable
+    of points (nb_points) to extract, the name of the output file (outfile), and a boolean variable
     for randomly selecting points. The aneurysms are read from truth_file if given, else from the 'pts aneurysm'
     entry of config.json (none if missing).
     The function reads the patient data volume and point locations from a JSON file. It extracts the
@@ -296,40 +298,42 @@ def extractPointsFromPatient(patient, r=20, nbPoints=100, outfile="points.csv", 
     print("Extracting points")
     truth_file = truth_file or d.get("pts aneurysm")
     ane_file = os.path.join(patient, truth_file) if truth_file else None
-    fPoints = read_points_from_csv(ane_file) if ane_file and os.path.isfile(ane_file) else None
-    fp = points_to_spheres(fPoints)[:, :-1]  # keep the centers, drop the radii
+    forbidden_points = read_points_from_csv(ane_file) if ane_file and os.path.isfile(ane_file) else None
+    fp = points_to_spheres(forbidden_points)[:, :-1]  # keep the centers, drop the radii
     q = None
-    if randomPoints:
-        minThreshold, maxThreshold = np.percentile(vol[vol > 0], 0), np.percentile(vol[vol > 0], 100)
+    if random_points:
+        min_threshold, max_threshold = np.percentile(vol[vol > 0], 0), np.percentile(vol[vol > 0], 100)
         print("Random Points ", end="")
-        p = selectPoints(
+        p = select_points(
             vol,
             vox2met,
-            thresLow=minThreshold,
-            thresHigh=maxThreshold,
+            thres_low=min_threshold,
+            thres_high=max_threshold,
             r=r,
-            fPoints=fp,
-            nbPoints=nbPoints,
-            extractType="Parenchyma",
+            forbidden_points=fp,
+            nb_points=nb_points,
+            extract_type="Parenchyma",
         )
         print(f"{len(p)} random points")
         title = "Random"
     else:
         T = np.percentile(vol[vol > 0], 95)
-        minThreshold = np.percentile(vol[vol > 0], 50)
-        maxThreshold = np.percentile(vol[vol > 0], 90)
-        p = selectPoints(vol, vox2met, thresLow=T, r=r, fPoints=fp, nbPoints=nbPoints, extractType="Vessels")
+        min_threshold = np.percentile(vol[vol > 0], 50)
+        max_threshold = np.percentile(vol[vol > 0], 90)
+        p = select_points(
+            vol, vox2met, thres_low=T, r=r, forbidden_points=fp, nb_points=nb_points, extract_type="Vessels"
+        )
         title = "Vessel"
         print(f"{len(p)} vessel points")
-        q = selectPoints(
+        q = select_points(
             vol,
             vox2met,
-            thresLow=minThreshold,
-            thresHigh=maxThreshold,
+            thres_low=min_threshold,
+            thres_high=max_threshold,
             r=r,
-            fPoints=np.vstack((fp, p)),
-            nbPoints=nbPoints,
-            extractType="Parenchyma",
+            forbidden_points=np.vstack((fp, p)),
+            nb_points=nb_points,
+            extract_type="Parenchyma",
         )
         print(f"{len(q)} Parenchyma points")
 

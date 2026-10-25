@@ -1,6 +1,6 @@
 import pytest
 
-from deepanedet.training.dataset import getDataloaders
+from deepanedet.training.dataset import get_dataloaders
 from deepanedet.training.losses import get_loss_criterion
 from deepanedet.training.trainer import create_trainer
 from deepanedet.utils import get_model, get_optimizer_scheduler
@@ -37,7 +37,7 @@ def train(patient_db, model_config):
 
     def run(n_epochs, **overrides):
         config = {**model_config, "n_epochs": n_epochs, **overrides}
-        loaders, iterations = getDataloaders(patient_db, None, config, workers=0)
+        loaders, iterations = get_dataloaders(patient_db, None, config, workers=0)
         model = get_model(config)
         optimizer, scheduler = get_optimizer_scheduler(
             model, config, warmup_steps=iterations["train"] * config["warmEpochs"]

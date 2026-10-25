@@ -1,8 +1,8 @@
-from deepanedet.training.dataset import getDataloaders
+from deepanedet.training.dataset import get_dataloaders
 
 
 def test_dataloaders_include_validation(patient_db, training_config):
-    loaders, _ = getDataloaders(train_db=patient_db[:1], valid_db=patient_db[1:], config=training_config, workers=0)
+    loaders, _ = get_dataloaders(train_db=patient_db[:1], valid_db=patient_db[1:], config=training_config, workers=0)
 
     batch = next(iter(loaders["valid"]))
 

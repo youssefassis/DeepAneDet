@@ -3,21 +3,21 @@ import random
 import numpy as np
 from deepanedet.utils import get_logger
 
-from deepanedet.data.generators import generateTransforms, getPatches
-from deepanedet.data.augmentation import randomFlip
-from deepanedet.volume.patch import getPatchAndAneurysms
+from deepanedet.data.generators import generate_transforms, get_patches
+from deepanedet.data.augmentation import random_flip
+from deepanedet.volume.patch import get_patch_and_aneurysms
 from deepanedet.training.batch_sampler import BalancedBatchSampler
 
 logger = get_logger("Dataset")
 
 
-def getDataloaders(train_db, valid_db, config, workers):
+def get_dataloaders(train_db, valid_db, config, workers):
     """
     This function returns PyTorch data loaders for training and validation sets,
     given the training and validation databases, a configuration dictionary,
     and the number of worker processes to use.
     The function first checks whether a training/validation database is provided.
-    If so, it calls the getPatches() function to obtain patches from the database
+    If so, it calls the get_patches() function to obtain patches from the database
     with the specified batch size and positive patch duplicates. Then, it creates
     a Dataset object with the obtained patches and the other configuration parameters,
     and creates a PyTorch data loader using either Balanced Batch Sampler or a standard
@@ -31,7 +31,7 @@ def getDataloaders(train_db, valid_db, config, workers):
     anchors = config["anchors"] if "anchors" in config else None
 
     if train_db is not None:
-        train_patches, train_iterations = getPatches(
+        train_patches, train_iterations = get_patches(
             pat_db=train_db, dup_ane=config["positive duplicates"], batch_size=config["batch_size"]
         )
 
@@ -80,7 +80,7 @@ def getDataloaders(train_db, valid_db, config, workers):
         )
 
     if valid_db is not None:
-        valid_patches, valid_iterations = getPatches(
+        valid_patches, valid_iterations = get_patches(
             pat_db=valid_db, dup_ane=config["positive duplicates"], batch_size=config["validation_batch_size"]
         )
         valid_dataset = Dataset(
@@ -178,11 +178,11 @@ class Dataset(torch.utils.data.Dataset):
         is True, it uses the positive transformation parameters; otherwise, it uses the negative
         transformation parameters.
         An infinite loop is used to make sure that the augmented aneurysm points are fullt included
-        inside the patch volume and maintains a 1.2mm distance from the borders (see getPatchAndAneurysms).
+        inside the patch volume and maintains a 1.2mm distance from the borders (see get_patch_and_aneurysms).
         If the points are not fully covered inside the patch, new random transformations are
-        generated using the generateTransforms.
+        generated using the generate_transforms.
         Once it has generated a fully-covered aneurysm, the method applies a random flip to the
-        volume and associated aneurysms using the randomFlip function.
+        volume and associated aneurysms using the random_flip function.
         Finally, a list of targets for each scale is generated using the get_truth_from_aneurysms
         function, passing in the associated aneurysms, scales, and the patch dimension (self.dim[0]).
         It then converts each set of targets to a PyTorch tensor.
@@ -196,8 +196,8 @@ class Dataset(torch.utils.data.Dataset):
             trans, scal, rot, dispc = self.neg_trans, self.neg_scal, self.neg_rot, self.neg_disp
         repeat_patch_gen = True
         while repeat_patch_gen:
-            affine, disp = generateTransforms(trans=trans, scal=scal, rot=rot, center=p["point"], disp=dispc)
-            patch_data = getPatchAndAneurysms(
+            affine, disp = generate_transforms(trans=trans, scal=scal, rot=rot, center=p["point"], disp=dispc)
+            patch_data = get_patch_and_aneurysms(
                 vol=p["data"],
                 vox2met=p["vox2met"],
                 center=p["point"],
@@ -209,7 +209,7 @@ class Dataset(torch.utils.data.Dataset):
             )
             v, aneurysms, fully_covered = patch_data["volume"], patch_data["aneurysms"], patch_data["fully_covered"]
             repeat_patch_gen = not fully_covered
-        v, aneurysms = randomFlip(
+        v, aneurysms = random_flip(
             data=[v, aneurysms], axes=self.flip_axis, patch_shape=self.dim, flip_probability=self.flip_prob
         )
 
