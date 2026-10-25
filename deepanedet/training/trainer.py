@@ -89,6 +89,8 @@ class Trainer:
         self.use_amp = mixed_precision and self.device_type == "cuda"  # float16 mixed precision is for GPUs
         self.mixed_precision = GradScaler(self.device_type, enabled=self.use_amp)
 
+        self.best_valid_loss = float("inf")
+
         self.writer = SummaryWriter(log_dir=os.path.join(self.checkpoint_dir, "logs"))
 
     def resume(self, state):
@@ -99,6 +101,7 @@ class Trainer:
             self.scheduler.load_state_dict(state["scheduler_state_dict"])
         if state.get("mixed_precision"):  # empty when saved without CUDA
             self.mixed_precision.load_state_dict(state["mixed_precision"])
+        self.best_valid_loss = state.get("best_valid_loss", float("inf"))
 
     def fit(self):
         logger.info(f"Training the model for {self.max_num_epochs - self.num_epoch} epochs")
@@ -120,13 +123,7 @@ class Trainer:
         train_loop = tqdm(self.loaders["train"], leave=True, unit="batch", total=self.max_iterations["train"])
 
         for batch in train_loop:
-            input_volume, target_spheres = batch["volume"], batch["truth"]
-
-            # TO DEVICE
-            input_volume = input_volume.to(self.device)
-            for i in range(len(target_spheres)):
-                for j in range(len(target_spheres[i])):
-                    target_spheres[i][j] = target_spheres[i][j].to(self.device)
+            input_volume, target_spheres = self._to_device(batch)
 
             self.optimizer.zero_grad()
             # Mixed precision training: Forward pass
@@ -150,9 +147,36 @@ class Trainer:
             train_loop.set_description("Training")
             train_loop.set_postfix(loss=loss_pr, lr=self.optimizer.param_groups[0]["lr"])
 
-        self._save_checkpoint(is_best=False, last_score=loss_pr)
-        self._log_stats(score=loss_pr)
+        valid_loss = self.validate()
+        is_best = valid_loss is not None and valid_loss < self.best_valid_loss
+        if is_best:
+            logger.info(f"Best validation loss so far: {valid_loss}")
+            self.best_valid_loss = valid_loss
+        self._save_checkpoint(is_best=is_best, last_score=loss_pr)
+        self._log_stats(train_loss=loss_pr, valid_loss=valid_loss)
         self._update_lr()
+
+    def validate(self):
+        """Returns the mean loss on the validation patches (None without validation patients)"""
+        if self.loaders.get("valid") is None:
+            return None
+        self.model.eval()
+        losses = RunningAverage()
+        loop = tqdm(self.loaders["valid"], leave=True, unit="batch", total=self.max_iterations["valid"])
+        with torch.no_grad():
+            for batch in loop:
+                input_volume, targets = self._to_device(batch)
+                with torch.amp.autocast(self.device_type, enabled=self.use_amp):
+                    loss = self.loss_criterion(predictions=self.model(input_volume), targets=targets)
+                losses.update(loss.item(), input_volume.size(0))
+                loop.set_description("Validation")
+                loop.set_postfix(loss=losses.avg)
+        return losses.avg
+
+    def _to_device(self, batch):
+        input_volume, targets = batch["volume"].to(self.device), batch["truth"]
+        targets = [[target.to(self.device) for target in scale] for scale in targets]
+        return input_volume, targets
 
     def _update_lr(self, warmup=False):
         if self.scheduler is None:
@@ -180,10 +204,12 @@ class Trainer:
             "scheduler_state_dict": self.scheduler.state_dict() if self.scheduler is not None else None,
             "num_epoch": self.num_epoch,
             "mixed_precision": self.mixed_precision.state_dict(),
+            "best_valid_loss": self.best_valid_loss,
         }
         return save_checkpoint(state, is_best=is_best, checkpoint_dir=self.checkpoint_dir, epoch=epoch, logger=logger)
 
-    def _log_stats(self, score):
-        self.writer.add_scalars("Loss", {"train": score}, self.num_epoch)
+    def _log_stats(self, train_loss, valid_loss):
+        losses = {"train": train_loss} if valid_loss is None else {"train": train_loss, "valid": valid_loss}
+        self.writer.add_scalars("Loss", losses, self.num_epoch)
         self.writer.add_scalar("learningRate", self.optimizer.param_groups[0]["lr"], self.num_epoch)
         self.writer.close()

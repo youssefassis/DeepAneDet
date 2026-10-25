@@ -14,12 +14,12 @@ from conftest import TINY_TRAINING, compose_config
 def train(patient_db, tmp_path):
     """
     Trains (or resumes training) the tiny model up to n_epochs, with Hydra overrides of the training config, in
-    train_dir (tmp_path by default); returns its trainer.
+    train_dir (tmp_path by default), validating on the same patients with validation=True; returns its trainer.
     """
 
-    def run(n_epochs, *overrides, train_dir=tmp_path):
+    def run(n_epochs, *overrides, train_dir=tmp_path, validation=False):
         cfg = compose_config("train", [*TINY_TRAINING, f"data_dir={tmp_path}", f"epochs={n_epochs}", *overrides])
-        loaders, iterations = get_dataloaders(patient_db, None, cfg)
+        loaders, iterations = get_dataloaders(patient_db, patient_db if validation else None, cfg)
         model = get_model(cfg.model)
         optimizer = instantiate(cfg.optimizer, params=model.parameters(), _convert_="all")
         warmup_epochs = cfg.scheduler.warmup_epochs
@@ -121,3 +121,21 @@ def test_mixed_precision_can_be_turned_off(train):
     trainer = train(1, "mixed_precision=false")
 
     assert not trainer.use_amp and not trainer.mixed_precision.is_enabled()
+
+
+def test_validation_keeps_the_best_checkpoint_across_resumes(train, tmp_path):
+    import torch
+
+    first = train(1, validation=True)
+    assert (tmp_path / "best_checkpoint.pytorch").is_file()
+    assert first.best_valid_loss == torch.load(tmp_path / "last_checkpoint.pytorch")["best_valid_loss"] < float("inf")
+
+    resumed = train(2, validation=True)
+
+    assert resumed.best_valid_loss <= first.best_valid_loss
+
+
+def test_training_without_validation_keeps_no_best_checkpoint(train, tmp_path):
+    train(1)
+
+    assert not (tmp_path / "best_checkpoint.pytorch").exists()
