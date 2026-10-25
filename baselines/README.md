@@ -1,10 +1,20 @@
 # Baselines
 
-Code used to run the nnU-Net and nnDetection baselines of the paper. It is kept here for reproducibility and is not used by DeepAneDet itself.
+The nnU-Net and nnDetection baselines of the paper, as patches on the upstream versions they were run with. They are
+kept for reproducibility and are not used by DeepAneDet itself.
 
-| Folder | Upstream | Changes for the paper |
+| Patch | Upstream | Changes for the paper |
 |---|---|---|
-| `nnunet` | [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) 1.7.0 (v1) | `inference/segmentation_export.py` saves the foreground probability instead of the label (used as detection confidence); `nnUNetTrainerV2_Loss_Dice.py` adds a Dice + CE trainer without smoothing |
-| `nndetection` | [nnDetection](https://github.com/MIC-DKFZ/nnDetection) commit `1044ace5` | `nndet` is unchanged; Docker setup, data and model paths in `scripts/`, and an extra `scripts/predict_old.py` |
+| `nnunet-v1.7.0.patch` | [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) `v1.7.0` | `inference/segmentation_export.py` saves the foreground probability instead of the label (used as detection confidence; the original is kept as `segmentation_export_org.py`); `nnUNetTrainerV2_Loss_Dice.py` adds a Dice + CE trainer without smoothing; small changes to `inference/predict.py`, `predict_simple.py`, `run/run_training.py` and the pretrained model scripts; `setup.py` leaves the dependencies to the environment |
+| `nndetection-1044ace5.patch` | [nnDetection](https://github.com/MIC-DKFZ/nnDetection) commit `1044ace5` | `nndet` is unchanged; a Docker image with Jupyter (`Dockerfile`, `buildDocker.sh`, `runDocker.sh`), `${env:...}` paths in `scripts/`, and an extra `scripts/predict_old.py` |
+
+To get the code that was run, check out each upstream version next to DeepAneDet and apply its patch:
+```
+git clone https://github.com/MIC-DKFZ/nnUNet && git -C nnUNet checkout v1.7.0
+git -C nnUNet apply ../DeepAneDet/baselines/nnunet-v1.7.0.patch
+git clone https://github.com/MIC-DKFZ/nnDetection && git -C nnDetection checkout 1044ace5
+git -C nnDetection apply ../DeepAneDet/baselines/nndetection-1044ace5.patch
+```
+Then install and run them as described in their own documentation.
 
 `prepare_nnunet_data.ipynb` and `prepare_nndetection_data.ipynb` convert the data to the formats these baselines expect.
