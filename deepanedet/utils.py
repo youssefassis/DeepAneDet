@@ -133,7 +133,9 @@ def create_lr_scheduler(optimizer, config, epochs, warmup_steps=0):
     ReduceLROnPlateau, Poly, Warmup, WarmupPlateau or WarmupPoly. The optimizer's learning rate is the peak one:
     warmup schedulers start from 1e-8 and raise it over warmup_steps batches.
     """
-    assert config["name"] in [None, "ReduceLROnPlateau", "Poly", "Warmup", "WarmupPlateau", "WarmupPoly"]
+    names = [None, "ReduceLROnPlateau", "Poly", "Warmup", "WarmupPlateau", "WarmupPoly"]
+    if config["name"] not in names:
+        raise ValueError(f"Unsupported scheduler '{config['name']}', expected one of {names}")
     initial_lr = optimizer.param_groups[0]["lr"]
     if str(config["name"]).startswith("Warmup"):
         LearningRateScheduler.set_lr(optimizer, 1e-8)
